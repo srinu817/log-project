@@ -54,8 +54,180 @@ const EMPTY_REPOSITORY = {
   active: true,
 };
 
+
+// ============================================================
+// AUTHENTICATION
+// ============================================================
+
+const ACCESS_TOKEN_KEY = "ld_access_token";
+const REFRESH_TOKEN_KEY = "ld_refresh_token";
+const AUTH_USER_KEY = "ld_auth_user";
+
+function normalizeAuthUser(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value.user && typeof value.user === "object") {
+    return value.user;
+  }
+
+  return value;
+}
+
+function getStoredAuthUser() {
+  try {
+    const value = localStorage.getItem(AUTH_USER_KEY);
+    return value
+      ? normalizeAuthUser(JSON.parse(value))
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearAuthStorage() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+}
+
+function storeAuthSession(data) {
+  if (data?.access) {
+    localStorage.setItem(
+      ACCESS_TOKEN_KEY,
+      data.access
+    );
+  }
+
+  if (data?.refresh) {
+    localStorage.setItem(
+      REFRESH_TOKEN_KEY,
+      data.refresh
+    );
+  }
+
+  if (data?.user) {
+    localStorage.setItem(
+      AUTH_USER_KEY,
+      JSON.stringify(data.user)
+    );
+  }
+}
+
+async function authFetch(url, options = {}) {
+  const requestOptions = {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+    },
+  };
+
+  const accessToken =
+    localStorage.getItem(ACCESS_TOKEN_KEY);
+
+  if (accessToken) {
+    requestOptions.headers.Authorization =
+      `Bearer ${accessToken}`;
+  }
+
+  let response = await fetch(
+    url,
+    requestOptions
+  );
+
+  if (response.status !== 401) {
+    return response;
+  }
+
+  const refreshToken =
+    localStorage.getItem(REFRESH_TOKEN_KEY);
+
+  if (!refreshToken) {
+    clearAuthStorage();
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  const refreshResponse = await fetch(
+    `${API}/auth/refresh/`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refresh: refreshToken,
+      }),
+    }
+  );
+
+  if (!refreshResponse.ok) {
+    clearAuthStorage();
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  const refreshData =
+    await refreshResponse.json();
+
+  if (!refreshData.access) {
+    clearAuthStorage();
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  localStorage.setItem(
+    ACCESS_TOKEN_KEY,
+    refreshData.access
+  );
+
+  requestOptions.headers.Authorization =
+    `Bearer ${refreshData.access}`;
+
+  response = await fetch(
+    url,
+    requestOptions
+  );
+
+  return response;
+}
+
 function App() {
   const [page, setPage] = useState("Dashboard");
+
+  const [authUser, setAuthUser] = useState(
+    getStoredAuthUser
+  );
+  const [authLoading, setAuthLoading] =
+    useState(true);
+  const [authMode, setAuthMode] =
+    useState("login");
+
+  // ==========================================================
+  // FRONTEND RBAC
+  // ==========================================================
+
+  const userRole =
+    authUser?.role || "USER";
+
+  const isAdmin =
+    userRole === "ADMIN";
+
+  const isManager =
+    userRole === "MANAGER";
+
+  const canManageRepositories =
+    isAdmin || isManager;
+
+  const canRunDelivery =
+    isAdmin || isManager;
+
+  const canDeleteRepository =
+    isAdmin;
 
   const [data, setData] = useState(null);
   const [repos, setRepos] = useState([]);
@@ -86,6 +258,123 @@ function App() {
   const [branchesLoading, setBranchesLoading] = useState(false);
   const [branchesError, setBranchesError] = useState("");
 
+  // ==========================================================
+  // USER MANAGEMENT
+  // ==========================================================
+
+  const [managedUsers, setManagedUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userFormOpen, setUserFormOpen] = useState(false);
+  const [editingManagedUser, setEditingManagedUser] = useState(null);
+  const [userForm, setUserForm] = useState({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    password: "",
+    password_confirm: "",
+    role: "USER",
+    is_active: true,
+  });
+
+  useEffect(() => {
+    const accessToken =
+      localStorage.getItem(
+        ACCESS_TOKEN_KEY
+      );
+
+    if (!accessToken) {
+      setAuthLoading(false);
+      return;
+    }
+
+    authFetch(`${API}/auth/me/`)
+      .then(async (response) => {
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            getApiError(result)
+          );
+        }
+
+        const user = normalizeAuthUser(result);
+
+        if (!user) {
+          throw new Error(
+            "Unable to load the authenticated user."
+          );
+        }
+
+        localStorage.setItem(
+          AUTH_USER_KEY,
+          JSON.stringify(user)
+        );
+
+        setAuthUser(user);
+      })
+      .catch(() => {
+        clearAuthStorage();
+        setAuthUser(null);
+      })
+      .finally(() => {
+        setAuthLoading(false);
+      });
+  }, []);
+
+  const handleAuthenticated = (user) => {
+    setAuthUser(user);
+    setAuthMode("login");
+  };
+
+  const handleLogout = async () => {
+    const refreshToken =
+      localStorage.getItem(
+        REFRESH_TOKEN_KEY
+      );
+
+    try {
+      if (refreshToken) {
+        await fetch(
+          `${API}/auth/logout/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              ...(localStorage.getItem(
+                ACCESS_TOKEN_KEY
+              )
+                ? {
+                    Authorization:
+                      `Bearer ${localStorage.getItem(
+                        ACCESS_TOKEN_KEY
+                      )}`,
+                  }
+                : {}),
+            },
+            body: JSON.stringify({
+              refresh: refreshToken,
+            }),
+          }
+        );
+      }
+    } catch {
+      // Logout must still clear the local session
+      // when the backend is unavailable.
+    } finally {
+      clearAuthStorage();
+      setAuthUser(null);
+      setAuthMode("login");
+      setPage("Dashboard");
+      setData(null);
+      setRepos([]);
+      setJobs([]);
+      setNotice("");
+    }
+  };
+
   const selectedRepository = useMemo(() => {
     return (
       repos.find(
@@ -106,9 +395,9 @@ function App() {
       repositoriesResponse,
       jobsResponse,
     ] = await Promise.all([
-      fetch(`${API}/dashboard/`),
-      fetch(`${API}/repositories/`),
-      fetch(`${API}/jobs/`),
+      authFetch(`${API}/dashboard/`),
+      authFetch(`${API}/repositories/`),
+      authFetch(`${API}/jobs/`),
     ]);
 
     if (!dashboardResponse.ok) {
@@ -157,19 +446,359 @@ function App() {
   };
 
   useEffect(() => {
+    if (!authUser) {
+      return;
+    }
+
+    if (
+      page === "User Management" &&
+      !isAdmin
+    ) {
+      setPage("Dashboard");
+      return;
+    }
+
     load().catch((error) => {
       setNotice(
         error.message ||
           "Backend is not running. Start Django on port 8000."
       );
+
+      if (
+        !localStorage.getItem(
+          ACCESS_TOKEN_KEY
+        )
+      ) {
+        setAuthUser(null);
+      }
     });
-  }, []);
+  }, [authUser]);
+
+  // ==========================================================
+  // USER MANAGEMENT
+  // ==========================================================
+
+  const resetUserForm = () => {
+    setUserForm({
+      username: "",
+      email: "",
+      first_name: "",
+      last_name: "",
+      password: "",
+      password_confirm: "",
+      role: "USER",
+      is_active: true,
+    });
+  };
+
+  const loadManagedUsers = async () => {
+    if (!isAdmin) {
+      return;
+    }
+
+    setUsersLoading(true);
+
+    try {
+      const response = await authFetch(
+        `${API}/auth/users/`
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          getApiError(result)
+        );
+      }
+
+      setManagedUsers(
+        Array.isArray(result)
+          ? result
+          : []
+      );
+    } catch (error) {
+      setNotice(
+        error.message ||
+          "Unable to load users."
+      );
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      authUser &&
+      isAdmin &&
+      page === "User Management"
+    ) {
+      loadManagedUsers();
+    }
+  }, [authUser, isAdmin, page]);
+
+  const openCreateUser = () => {
+    if (!isAdmin) {
+      setNotice(
+        "Administrator access is required."
+      );
+      return;
+    }
+
+    setEditingManagedUser(null);
+    resetUserForm();
+    setUserFormOpen(true);
+    setNotice("");
+  };
+
+  const openEditUser = (user) => {
+    if (!isAdmin) {
+      setNotice(
+        "Administrator access is required."
+      );
+      return;
+    }
+
+    setEditingManagedUser(user);
+
+    setUserForm({
+      id: user.id,
+      username: user.username || "",
+      email: user.email || "",
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      password: "",
+      password_confirm: "",
+      role: user.role || "USER",
+      is_active: user.is_active ?? true,
+    });
+
+    setUserFormOpen(true);
+    setNotice("");
+  };
+
+  const closeUserForm = () => {
+    if (busy) {
+      return;
+    }
+
+    setUserFormOpen(false);
+    setEditingManagedUser(null);
+    resetUserForm();
+  };
+
+  const updateUserField = (
+    field,
+    value
+  ) => {
+    setUserForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const saveManagedUser = async (event) => {
+    event.preventDefault();
+
+    if (!isAdmin) {
+      setNotice(
+        "Administrator access is required."
+      );
+      return;
+    }
+
+    setBusy(true);
+    setNotice("");
+
+    try {
+      if (editingManagedUser) {
+        const payload = {
+          username:
+            userForm.username.trim(),
+          email:
+            userForm.email.trim(),
+          first_name:
+            userForm.first_name.trim(),
+          last_name:
+            userForm.last_name.trim(),
+          role: userForm.role,
+          is_active: userForm.is_active,
+        };
+
+        const response = await authFetch(
+          `${API}/auth/users/${editingManagedUser.id}/`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            getApiError(result)
+          );
+        }
+
+        setNotice(
+          "User updated successfully."
+        );
+      } else {
+        if (
+          userForm.password !==
+          userForm.password_confirm
+        ) {
+          throw new Error(
+            "Passwords do not match."
+          );
+        }
+
+        const payload = {
+          username:
+            userForm.username.trim(),
+          email:
+            userForm.email.trim(),
+          first_name:
+            userForm.first_name.trim(),
+          last_name:
+            userForm.last_name.trim(),
+          password:
+            userForm.password,
+          password_confirm:
+            userForm.password_confirm,
+          role: userForm.role,
+        };
+
+        const response = await authFetch(
+          `${API}/auth/users/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            getApiError(result)
+          );
+        }
+
+        setNotice(
+          "User created successfully."
+        );
+      }
+
+      setUserFormOpen(false);
+      setEditingManagedUser(null);
+      resetUserForm();
+      await loadManagedUsers();
+    } catch (error) {
+      setNotice(
+        error.message ||
+          "Unable to save user."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleManagedUser = async (user) => {
+    if (!isAdmin) {
+      setNotice(
+        "Administrator access is required."
+      );
+      return;
+    }
+
+    if (
+      String(user.id) ===
+      String(authUser?.id)
+    ) {
+      setNotice(
+        "You cannot deactivate your own account."
+      );
+      return;
+    }
+
+    const nextActive =
+      !user.is_active;
+
+    const confirmed = window.confirm(
+      `${nextActive ? "Activate" : "Deactivate"} "${user.username}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusy(true);
+    setNotice("");
+
+    try {
+      const response = await authFetch(
+        `${API}/auth/users/${user.id}/`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            is_active: nextActive,
+          }),
+        }
+      );
+
+      const result =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          getApiError(result)
+        );
+      }
+
+      setNotice(
+        nextActive
+          ? "User activated successfully."
+          : "User deactivated successfully."
+      );
+
+      await loadManagedUsers();
+    } catch (error) {
+      setNotice(
+        error.message ||
+          "Unable to update user status."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // ==========================================================
   // REPOSITORY FORM
   // ==========================================================
 
   const openAddRepository = () => {
+    if (!canManageRepositories) {
+      setNotice(
+        "Manager or Administrator access is required to manage repositories."
+      );
+      return;
+    }
+
     setEditingRepository(null);
 
     setRepositoryForm({
@@ -184,6 +813,13 @@ function App() {
   };
 
   const openEditRepository = (repository) => {
+    if (!canManageRepositories) {
+      setNotice(
+        "Manager or Administrator access is required to manage repositories."
+      );
+      return;
+    }
+
     setEditingRepository(repository);
 
     setRepositoryForm({
@@ -249,7 +885,7 @@ function App() {
     setNotice("");
 
     if (repository.repository_type !== "LOCAL") {
-      fetch(`${API}/repositories/${repository.id}/branches/`)
+      authFetch(`${API}/repositories/${repository.id}/branches/`)
         .then(async (response) => {
           const result = await response.json();
           if (!response.ok) {
@@ -414,7 +1050,7 @@ function App() {
         ? "PATCH"
         : "POST";
 
-      const response = await fetch(
+      const response = await authFetch(
         url,
         {
           method,
@@ -483,7 +1119,7 @@ function App() {
     setBranchesError("");
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API}/repositories/${repository.id}/branches/`
       );
 
@@ -543,7 +1179,7 @@ function App() {
 
     try {
       const response =
-        await fetch(
+        await authFetch(
           `${API}/repositories/${repository.id}/test/`,
           {
             method: "POST",
@@ -630,7 +1266,7 @@ function App() {
 
     try {
       const response =
-        await fetch(
+        await authFetch(
           `${API}/repositories/${repository.id}/`,
           {
             method: "DELETE",
@@ -676,6 +1312,13 @@ function App() {
   const runDelivery = async (
     dryRun = false
   ) => {
+    if (!canRunDelivery) {
+      setNotice(
+        "Manager or Administrator access is required to run delivery."
+      );
+      return;
+    }
+
     if (!selectedRepositoryId) {
       setNotice(
         "Select a repository before starting delivery."
@@ -689,7 +1332,7 @@ function App() {
 
     try {
       const response =
-        await fetch(
+        await authFetch(
           `${API}/jobs/`,
           {
             method: "POST",
@@ -761,6 +1404,20 @@ function App() {
     dry_run: 0,
   };
 
+  if (authLoading) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (!authUser) {
+    return (
+      <AuthScreen
+        mode={authMode}
+        onModeChange={setAuthMode}
+        onAuthenticated={handleAuthenticated}
+      />
+    );
+  }
+
   return (
     <div className="app">
 
@@ -796,6 +1453,14 @@ function App() {
               "Repositories",
               GitBranch,
             ],
+            ...(isAdmin
+              ? [
+                  [
+                    "User Management",
+                    Users,
+                  ],
+                ]
+              : []),
             [
               "Settings",
               Settings,
@@ -825,11 +1490,13 @@ function App() {
 
           <div>
             <b>
-              Secure mode
+              Secure mode · {userRole}
             </b>
 
             <span>
-              Controlled delivery
+              {canManageRepositories
+                ? "Management access enabled"
+                : "Standard user access"}
             </span>
           </div>
         </div>
@@ -876,22 +1543,67 @@ function App() {
               Refresh
             </button>
 
-            <button
-              className="primary"
-              disabled={
-                busy ||
-                !selectedRepositoryId
-              }
-              onClick={() =>
-                runDelivery(false)
-              }
-            >
-              <Send size={16} />
+            {canRunDelivery && (
+              <button
+                className="primary"
+                disabled={
+                  busy ||
+                  !selectedRepositoryId
+                }
+                onClick={() =>
+                  runDelivery(false)
+                }
+              >
+                <Send size={16} />
 
-              {busy
-                ? "Processing..."
-                : "Run delivery"}
-            </button>
+                {busy
+                  ? "Processing..."
+                  : "Run delivery"}
+              </button>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginLeft: "4px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                  lineHeight: 1.15,
+                }}
+              >
+                <strong
+                  style={{
+                    fontSize: "13px",
+                  }}
+                >
+                  {authUser?.username}
+                </strong>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    opacity: 0.7,
+                  }}
+                >
+                  {authUser?.role || "USER"}
+                </span>
+              </div>
+
+              <button
+                className="ghost"
+                disabled={busy}
+                onClick={handleLogout}
+                title="Sign out"
+              >
+                Sign out
+              </button>
+            </div>
 
           </div>
         </header>
@@ -1040,19 +1752,21 @@ function App() {
                 </span>
               </div>
 
-              <button
-                className="primary small"
-                disabled={
-                  busy ||
-                  !selectedRepositoryId
-                }
-                onClick={() =>
-                  runDelivery(true)
-                }
-              >
-                <Clock3 size={15} />
-                Dry run
-              </button>
+              {canRunDelivery && (
+                <button
+                  className="primary small"
+                  disabled={
+                    busy ||
+                    !selectedRepositoryId
+                  }
+                  onClick={() =>
+                    runDelivery(true)
+                  }
+                >
+                  <Clock3 size={15} />
+                  Dry run
+                </button>
+              )}
 
             </div>
 
@@ -1088,16 +1802,18 @@ function App() {
                 </span>
               </div>
 
-              <button
-                className="primary small"
-                onClick={
-                  openAddRepository
-                }
-                disabled={busy}
-              >
-                <Plus size={16} />
-                Add repository
-              </button>
+              {canManageRepositories && (
+                <button
+                  className="primary small"
+                  onClick={
+                    openAddRepository
+                  }
+                  disabled={busy}
+                >
+                  <Plus size={16} />
+                  Add repository
+                </button>
+              )}
 
             </div>
 
@@ -1156,15 +1872,17 @@ function App() {
                   to begin collecting files.
                 </span>
 
-                <button
-                  className="primary small"
-                  onClick={
-                    openAddRepository
-                  }
-                >
-                  <Plus size={15} />
-                  Add repository
-                </button>
+                {canManageRepositories && (
+                  <button
+                    className="primary small"
+                    onClick={
+                      openAddRepository
+                    }
+                  >
+                    <Plus size={15} />
+                    Add repository
+                  </button>
+                )}
 
               </div>
             ) : (
@@ -1178,6 +1896,12 @@ function App() {
                         repository
                       }
                       busy={busy}
+                      canManage={
+                        canManageRepositories
+                      }
+                      canDelete={
+                        canDeleteRepository
+                      }
                       selected={
                         String(
                           selectedRepositoryId
@@ -1207,6 +1931,95 @@ function App() {
                 )}
 
               </div>
+            )}
+
+          </section>
+        )}
+
+        {/* ======================================================
+            USER MANAGEMENT
+        ======================================================= */}
+
+        {page === "User Management" && isAdmin && (
+          <section className="panel full">
+
+            <div className="panelHead">
+
+              <div>
+                <div className="eyebrow">
+                  ACCESS ADMINISTRATION
+                </div>
+
+                <h2>
+                  User Management
+                </h2>
+
+                <span>
+                  Create application users, manage roles and control account access.
+                </span>
+              </div>
+
+              <div style={{
+                display: "flex",
+                gap: "8px",
+              }}>
+                <button
+                  className="ghost small"
+                  onClick={loadManagedUsers}
+                  disabled={busy || usersLoading}
+                >
+                  <RefreshCw size={15} />
+                  {usersLoading ? "Loading..." : "Refresh"}
+                </button>
+
+                <button
+                  className="primary small"
+                  onClick={openCreateUser}
+                  disabled={busy}
+                >
+                  <Plus size={16} />
+                  Create user
+                </button>
+              </div>
+
+            </div>
+
+            {usersLoading && managedUsers.length === 0 ? (
+              <div className="empty">
+                <Users size={38} />
+                <b>
+                  Loading users...
+                </b>
+                <span>
+                  Retrieving the application user list.
+                </span>
+              </div>
+            ) : managedUsers.length === 0 ? (
+              <div className="empty">
+                <Users size={38} />
+                <b>
+                  No users found
+                </b>
+                <span>
+                  Create the first managed application user.
+                </span>
+
+                <button
+                  className="primary small"
+                  onClick={openCreateUser}
+                >
+                  <Plus size={15} />
+                  Create user
+                </button>
+              </div>
+            ) : (
+              <UserManagementTable
+                users={managedUsers}
+                currentUserId={authUser?.id}
+                busy={busy}
+                onEdit={openEditUser}
+                onToggle={toggleManagedUser}
+              />
             )}
 
           </section>
@@ -1283,6 +2096,22 @@ function App() {
       </main>
 
       {/* ======================================================
+          USER MANAGEMENT MODAL
+      ======================================================= */}
+
+      {userFormOpen && isAdmin && (
+        <UserManagementModal
+          form={userForm}
+          editing={Boolean(editingManagedUser)}
+          currentUserId={authUser?.id}
+          busy={busy}
+          onChange={updateUserField}
+          onClose={closeUserForm}
+          onSubmit={saveManagedUser}
+        />
+      )}
+
+      {/* ======================================================
           REPOSITORY MODAL
       ======================================================= */}
 
@@ -1341,6 +2170,1043 @@ function App() {
           }}
         />
       )}
+
+    </div>
+  );
+}
+
+
+
+// ============================================================
+// AUTH LOADING SCREEN
+// ============================================================
+
+function AuthLoadingScreen() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#f5f7fb",
+        padding: "24px",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "420px",
+          padding: "32px",
+          borderRadius: "18px",
+          background: "#ffffff",
+          boxShadow:
+            "0 18px 50px rgba(15, 23, 42, 0.10)",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            width: "52px",
+            height: "52px",
+            margin: "0 auto 16px",
+            display: "grid",
+            placeItems: "center",
+            borderRadius: "14px",
+            background: "#111827",
+            color: "#ffffff",
+            fontWeight: 800,
+          }}
+        >
+          LD
+        </div>
+        <strong>Checking your session...</strong>
+      </div>
+    </div>
+  );
+}
+
+
+// ============================================================
+// AUTH SCREEN
+// ============================================================
+
+function AuthScreen({
+  mode,
+  onModeChange,
+  onAuthenticated,
+}) {
+  const isSignup = mode === "signup";
+
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    password: "",
+    password_confirm: "",
+  });
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
+
+  const updateField = (
+    field,
+    value
+  ) => {
+    setForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const switchMode = (
+    nextMode
+  ) => {
+    if (busy) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setForm({
+      username: "",
+      email: "",
+      first_name: "",
+      last_name: "",
+      password: "",
+      password_confirm: "",
+    });
+    onModeChange(nextMode);
+  };
+
+  const submit = async (
+    event
+  ) => {
+    event.preventDefault();
+
+    setBusy(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      if (
+        isSignup &&
+        form.password !==
+          form.password_confirm
+      ) {
+        throw new Error(
+          "Passwords do not match."
+        );
+      }
+
+      const endpoint = isSignup
+        ? `${API}/auth/signup/`
+        : `${API}/auth/login/`;
+
+      const payload = isSignup
+        ? {
+            username:
+              form.username.trim(),
+            email:
+              form.email.trim(),
+            first_name:
+              form.first_name.trim(),
+            last_name:
+              form.last_name.trim(),
+            password:
+              form.password,
+            password_confirm:
+              form.password_confirm,
+          }
+        : {
+            username:
+              form.username.trim(),
+            password:
+              form.password,
+          };
+
+      const response = await fetch(
+        endpoint,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify(
+            payload
+          ),
+        }
+      );
+
+      const result =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          getApiError(result)
+        );
+      }
+
+      if (isSignup) {
+        setSuccess(
+          result.message ||
+            "Account created successfully. Please sign in."
+        );
+
+        setTimeout(() => {
+          onModeChange("login");
+          setSuccess("");
+          setError("");
+          setForm({
+            username: "",
+            email: "",
+            first_name: "",
+            last_name: "",
+            password: "",
+            password_confirm: "",
+          });
+        }, 900);
+
+        return;
+      }
+
+      storeAuthSession(result);
+
+      let user = result.user;
+
+      if (!user) {
+        const meResponse =
+          await authFetch(
+            `${API}/auth/me/`
+          );
+
+        const meResult =
+          await meResponse.json();
+
+        if (!meResponse.ok) {
+          throw new Error(
+            getApiError(meResult)
+          );
+        }
+
+        user = normalizeAuthUser(meResult);
+
+        if (!user) {
+          throw new Error(
+            "Unable to load the authenticated user."
+          );
+        }
+
+        localStorage.setItem(
+          AUTH_USER_KEY,
+          JSON.stringify(user)
+        );
+      }
+
+      onAuthenticated(user);
+    } catch (submitError) {
+      setError(
+        submitError.message ||
+          "Unable to complete the request."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background:
+          "linear-gradient(135deg, #f5f7fb 0%, #eef2ff 100%)",
+        padding: "24px",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: isSignup
+            ? "560px"
+            : "430px",
+          background: "#ffffff",
+          borderRadius: "20px",
+          padding: "34px",
+          boxShadow:
+            "0 22px 70px rgba(15, 23, 42, 0.12)",
+          border:
+            "1px solid rgba(148, 163, 184, 0.22)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            marginBottom: "28px",
+          }}
+        >
+          <div
+            style={{
+              width: "52px",
+              height: "52px",
+              display: "grid",
+              placeItems: "center",
+              borderRadius: "14px",
+              background: "#111827",
+              color: "#ffffff",
+              fontWeight: 800,
+              letterSpacing: "0.04em",
+            }}
+          >
+            LD
+          </div>
+
+          <div>
+            <div
+              style={{
+                fontSize: "18px",
+                fontWeight: 800,
+              }}
+            >
+              Log Delivery
+            </div>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#64748b",
+                marginTop: "3px",
+              }}
+            >
+              Management
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            marginBottom: "22px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "11px",
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+              color: "#64748b",
+              marginBottom: "7px",
+            }}
+          >
+            SECURE ACCESS
+          </div>
+
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "28px",
+              color: "#0f172a",
+            }}
+          >
+            {isSignup
+              ? "Create account"
+              : "Welcome back"}
+          </h1>
+
+          <p
+            style={{
+              margin:
+                "8px 0 0",
+              color: "#64748b",
+              fontSize: "14px",
+              lineHeight: 1.5,
+            }}
+          >
+            {isSignup
+              ? "Create your account to access Log Delivery Management."
+              : "Sign in to continue to the operations center."}
+          </p>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "11px 13px",
+              borderRadius: "10px",
+              background: "#fef2f2",
+              border:
+                "1px solid #fecaca",
+              color: "#b91c1c",
+              fontSize: "13px",
+              lineHeight: 1.45,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "11px 13px",
+              borderRadius: "10px",
+              background: "#f0fdf4",
+              border:
+                "1px solid #bbf7d0",
+              color: "#15803d",
+              fontSize: "13px",
+              lineHeight: 1.45,
+            }}
+          >
+            {success}
+          </div>
+        )}
+
+        <form onSubmit={submit}>
+          {isSignup && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(2, minmax(0, 1fr))",
+                gap: "14px",
+              }}
+            >
+              <AuthInput
+                label="First name"
+                value={
+                  form.first_name
+                }
+                onChange={(value) =>
+                  updateField(
+                    "first_name",
+                    value
+                  )
+                }
+                autoComplete="given-name"
+              />
+
+              <AuthInput
+                label="Last name"
+                value={
+                  form.last_name
+                }
+                onChange={(value) =>
+                  updateField(
+                    "last_name",
+                    value
+                  )
+                }
+                autoComplete="family-name"
+              />
+            </div>
+          )}
+
+          <AuthInput
+            label="Username"
+            value={form.username}
+            onChange={(value) =>
+              updateField(
+                "username",
+                value
+              )
+            }
+            autoComplete="username"
+            required
+          />
+
+          {isSignup && (
+            <AuthInput
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={(value) =>
+                updateField(
+                  "email",
+                  value
+                )
+              }
+              autoComplete="email"
+              required
+            />
+          )}
+
+          <AuthInput
+            label="Password"
+            type="password"
+            value={form.password}
+            onChange={(value) =>
+              updateField(
+                "password",
+                value
+              )
+            }
+            autoComplete={
+              isSignup
+                ? "new-password"
+                : "current-password"
+            }
+            required
+          />
+
+          {isSignup && (
+            <AuthInput
+              label="Confirm password"
+              type="password"
+              value={
+                form.password_confirm
+              }
+              onChange={(value) =>
+                updateField(
+                  "password_confirm",
+                  value
+                )
+              }
+              autoComplete="new-password"
+              required
+            />
+          )}
+
+          <button
+            type="submit"
+            disabled={busy}
+            style={{
+              width: "100%",
+              marginTop: "8px",
+              padding:
+                "12px 16px",
+              border: 0,
+              borderRadius: "10px",
+              background: "#111827",
+              color: "#ffffff",
+              fontWeight: 700,
+              cursor: busy
+                ? "not-allowed"
+                : "pointer",
+              opacity: busy
+                ? 0.65
+                : 1,
+            }}
+          >
+            {busy
+              ? "Please wait..."
+              : isSignup
+              ? "Create account"
+              : "Sign in"}
+          </button>
+        </form>
+
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "20px",
+            paddingTop: "18px",
+            borderTop:
+              "1px solid #e2e8f0",
+            fontSize: "13px",
+            color: "#64748b",
+          }}
+        >
+          {isSignup
+            ? "Already have an account?"
+            : "Don't have an account?"}
+
+          <button
+            type="button"
+            onClick={() =>
+              switchMode(
+                isSignup
+                  ? "login"
+                  : "signup"
+              )
+            }
+            disabled={busy}
+            style={{
+              marginLeft: "6px",
+              padding: 0,
+              border: 0,
+              background:
+                "transparent",
+              color: "#2563eb",
+              fontWeight: 700,
+              cursor: busy
+                ? "not-allowed"
+                : "pointer",
+            }}
+          >
+            {isSignup
+              ? "Sign in"
+              : "Create account"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthInput({
+  label,
+  type = "text",
+  value,
+  onChange,
+  required = false,
+  autoComplete,
+}) {
+  return (
+    <div
+      style={{
+        marginBottom: "14px",
+      }}
+    >
+      <label
+        style={{
+          display: "block",
+          marginBottom: "6px",
+          fontSize: "12px",
+          fontWeight: 700,
+          color: "#334155",
+        }}
+      >
+        {label}
+      </label>
+
+      <input
+        type={type}
+        value={value}
+        onChange={(event) =>
+          onChange(
+            event.target.value
+          )
+        }
+        required={required}
+        autoComplete={autoComplete}
+        style={{
+          width: "100%",
+          boxSizing: "border-box",
+          padding:
+            "11px 12px",
+          border:
+            "1px solid #cbd5e1",
+          borderRadius: "9px",
+          outline: "none",
+          background: "#ffffff",
+          color: "#0f172a",
+          fontSize: "14px",
+        }}
+      />
+    </div>
+  );
+}
+
+
+// ============================================================
+// USER MANAGEMENT TABLE
+// ============================================================
+
+function UserManagementTable({
+  users,
+  currentUserId,
+  busy,
+  onEdit,
+  onToggle,
+}) {
+  return (
+    <div className="table">
+
+      <div className="tr th">
+        <span>User</span>
+        <span>Role</span>
+        <span>Status</span>
+        <span>Created</span>
+        <span>Actions</span>
+      </div>
+
+      {users.map((user) => {
+        const isCurrentUser =
+          String(user.id) ===
+          String(currentUserId);
+
+        return (
+          <div
+            className="tr"
+            key={user.id}
+          >
+
+            <span>
+              <b>
+                {user.username}
+              </b>
+
+              <small>
+                {user.email}
+                {(user.first_name || user.last_name) &&
+                  ` · ${[user.first_name, user.last_name]
+                    .filter(Boolean)
+                    .join(" ")}`}
+              </small>
+            </span>
+
+            <span>
+              <span
+                className={`status ${String(
+                  user.role || "USER"
+                ).toLowerCase()}`}
+              >
+                <ShieldCheck size={14} />
+                {user.role || "USER"}
+              </span>
+            </span>
+
+            <span>
+              <span
+                className={`status ${
+                  user.is_active
+                    ? "success"
+                    : "failed"
+                }`}
+              >
+                {user.is_active ? (
+                  <CheckCircle2 size={14} />
+                ) : (
+                  <XCircle size={14} />
+                )}
+                {user.is_active
+                  ? "ACTIVE"
+                  : "INACTIVE"}
+              </span>
+            </span>
+
+            <span>
+              {user.created_at
+                ? new Date(
+                    user.created_at
+                  ).toLocaleString()
+                : "—"}
+            </span>
+
+            <span>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "6px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <button
+                  className="ghost small"
+                  disabled={busy}
+                  onClick={() =>
+                    onEdit(user)
+                  }
+                >
+                  <Pencil size={14} />
+                  Edit
+                </button>
+
+                <button
+                  className={
+                    user.is_active
+                      ? "danger small"
+                      : "ghost small"
+                  }
+                  disabled={
+                    busy ||
+                    isCurrentUser
+                  }
+                  onClick={() =>
+                    onToggle(user)
+                  }
+                  title={
+                    isCurrentUser
+                      ? "You cannot deactivate your own account."
+                      : ""
+                  }
+                >
+                  {user.is_active ? (
+                    <>
+                      <XCircle size={14} />
+                      Deactivate
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={14} />
+                      Activate
+                    </>
+                  )}
+                </button>
+              </div>
+            </span>
+
+          </div>
+        );
+      })}
+
+    </div>
+  );
+}
+
+
+// ============================================================
+// USER MANAGEMENT MODAL
+// ============================================================
+
+function UserManagementModal({
+  form,
+  editing,
+  currentUserId,
+  busy,
+  onChange,
+  onClose,
+  onSubmit,
+}) {
+  const isCurrentUser =
+    editing &&
+    String(form.id) ===
+      String(currentUserId);
+
+  return (
+    <div className="modalOverlay">
+
+      <div className="modal">
+
+        <div className="modalHeader">
+
+          <div>
+            <div className="eyebrow">
+              ACCESS ADMINISTRATION
+            </div>
+
+            <h2>
+              {editing
+                ? "Edit user"
+                : "Create user"}
+            </h2>
+
+            <span>
+              {editing
+                ? "Update the user's profile, role or account status."
+                : "Create a USER or MANAGER application account."}
+            </span>
+          </div>
+
+          <button
+            className="iconButton"
+            onClick={onClose}
+            disabled={busy}
+          >
+            <X size={18} />
+          </button>
+
+        </div>
+
+        <form onSubmit={onSubmit}>
+
+          <div className="formSectionTitle">
+            <Users size={16} />
+            Account details
+          </div>
+
+          <div className="formGrid">
+
+            <FormInput
+              label="Username"
+              value={form.username}
+              onChange={(value) =>
+                onChange(
+                  "username",
+                  value
+                )
+              }
+              placeholder="username"
+              required
+            />
+
+            <FormInput
+              label="Email"
+              value={form.email}
+              onChange={(value) =>
+                onChange(
+                  "email",
+                  value
+                )
+              }
+              placeholder="user@company.com"
+              required
+            />
+
+            <FormInput
+              label="First name"
+              value={form.first_name}
+              onChange={(value) =>
+                onChange(
+                  "first_name",
+                  value
+                )
+              }
+              placeholder="First name"
+            />
+
+            <FormInput
+              label="Last name"
+              value={form.last_name}
+              onChange={(value) =>
+                onChange(
+                  "last_name",
+                  value
+                )
+              }
+              placeholder="Last name"
+            />
+
+            <div className="formField">
+              <label>
+                Role
+              </label>
+
+              <select
+                value={form.role}
+                onChange={(event) =>
+                  onChange(
+                    "role",
+                    event.target.value
+                  )
+                }
+                disabled={isCurrentUser}
+              >
+                <option value="USER">
+                  USER
+                </option>
+                <option value="MANAGER">
+                  MANAGER
+                </option>
+              </select>
+
+              {isCurrentUser && (
+                <span style={{ marginTop: "6px" }}>
+                  Your ADMIN role cannot be changed from this screen.
+                </span>
+              )}
+            </div>
+
+            {editing && (
+              <div className="formField">
+                <label>
+                  Account status
+                </label>
+
+                <select
+                  value={
+                    form.is_active
+                      ? "ACTIVE"
+                      : "INACTIVE"
+                  }
+                  onChange={(event) =>
+                    onChange(
+                      "is_active",
+                      event.target.value ===
+                        "ACTIVE"
+                    )
+                  }
+                  disabled={isCurrentUser}
+                >
+                  <option value="ACTIVE">
+                    ACTIVE
+                  </option>
+                  <option value="INACTIVE">
+                    INACTIVE
+                  </option>
+                </select>
+              </div>
+            )}
+
+          </div>
+
+          {!editing && (
+            <>
+              <div className="formSectionTitle">
+                <ShieldCheck size={16} />
+                Initial password
+              </div>
+
+              <div className="formGrid">
+
+                <FormInput
+                  label="Password"
+                  value={form.password}
+                  onChange={(value) =>
+                    onChange(
+                      "password",
+                      value
+                    )
+                  }
+                  placeholder="Minimum 8 characters"
+                  required
+                />
+
+                <FormInput
+                  label="Confirm password"
+                  value={form.password_confirm}
+                  onChange={(value) =>
+                    onChange(
+                      "password_confirm",
+                      value
+                    )
+                  }
+                  placeholder="Repeat password"
+                  required
+                />
+
+              </div>
+            </>
+          )}
+
+          <div className="smtpNotice">
+            <ShieldCheck size={16} />
+            <span>
+              Administrator access is required. This screen can create USER or MANAGER accounts; ADMIN is intentionally controlled separately.
+            </span>
+          </div>
+
+          <div className="modalFooter">
+
+            <button
+              type="button"
+              className="ghost"
+              onClick={onClose}
+              disabled={busy}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="primary"
+              disabled={busy}
+            >
+              <Save size={16} />
+
+              {busy
+                ? "Saving..."
+                : editing
+                ? "Save changes"
+                : "Create user"}
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
 
     </div>
   );
@@ -1895,6 +3761,8 @@ function RepositoryModal({
 function RepositoryCard({
   repository,
   busy,
+  canManage,
+  canDelete,
   selected,
   onSelect,
   onEdit,
@@ -2043,38 +3911,44 @@ function RepositoryCard({
             : "Use repository"}
         </button>
 
-        <button
-          className="ghost small"
-          disabled={busy}
-          onClick={() =>
-            onTest(repository)
-          }
-        >
-          <Wifi size={14} />
-          Test
-        </button>
+        {canManage && (
+          <button
+            className="ghost small"
+            disabled={busy}
+            onClick={() =>
+              onTest(repository)
+            }
+          >
+            <Wifi size={14} />
+            Test
+          </button>
+        )}
 
-        <button
-          className="ghost small"
-          disabled={busy}
-          onClick={() =>
-            onEdit(repository)
-          }
-        >
-          <Pencil size={14} />
-          Edit
-        </button>
+        {canManage && (
+          <button
+            className="ghost small"
+            disabled={busy}
+            onClick={() =>
+              onEdit(repository)
+            }
+          >
+            <Pencil size={14} />
+            Edit
+          </button>
+        )}
 
-        <button
-          className="danger small"
-          disabled={busy}
-          onClick={() =>
-            onDelete(repository)
-          }
-        >
-          <Trash2 size={14} />
-          Deactivate
-        </button>
+        {canDelete && (
+          <button
+            className="danger small"
+            disabled={busy}
+            onClick={() =>
+              onDelete(repository)
+            }
+          >
+            <Trash2 size={14} />
+            Deactivate
+          </button>
+        )}
 
       </div>
 

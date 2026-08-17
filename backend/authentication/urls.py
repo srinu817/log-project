@@ -9,6 +9,8 @@ from .views import (
     SignupView,
     LogoutView,
     MeView,
+    UserManagementListView,
+    UserManagementDetailView,
 )
 
 
@@ -42,5 +44,17 @@ urlpatterns = [
         "me/",
         MeView.as_view(),
         name="me",
+    ),
+
+    path(
+        "users/",
+        UserManagementListView.as_view(),
+        name="user-management-list",
+    ),
+
+    path(
+        "users/<int:user_id>/",
+        UserManagementDetailView.as_view(),
+        name="user-management-detail",
     ),
 ]

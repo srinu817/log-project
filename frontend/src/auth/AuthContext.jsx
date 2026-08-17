@@ -2,6 +2,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -11,16 +12,39 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+
   const [accessToken, setAccessToken] = useState(
-    () => localStorage.getItem("access_token") || ""
+    () =>
+      localStorage.getItem(
+        "access_token"
+      ) || ""
   );
-  const [loading, setLoading] = useState(true);
+
+  const [loading, setLoading] = useState(
+    true
+  );
+
+  // ==========================================================
+  // REFRESH LOCK
+  // ==========================================================
+  //
+  // Only ONE refresh request may run at a time.
+  //
+  // This is important because JWT refresh-token rotation is
+  // enabled on the backend. Multiple simultaneous refresh
+  // requests can otherwise race with one another.
+  //
+
+  const refreshPromiseRef = useRef(null);
 
   // ==========================================================
   // SAVE TOKENS
   // ==========================================================
 
-  const saveTokens = (access, refresh) => {
+  const saveTokens = (
+    access,
+    refresh
+  ) => {
     if (access) {
       localStorage.setItem(
         "access_token",
@@ -30,6 +54,9 @@ export function AuthProvider({ children }) {
       setAccessToken(access);
     }
 
+    // IMPORTANT:
+    // When refresh-token rotation is enabled, the backend may
+    // return a NEW refresh token. Always replace the old one.
     if (refresh) {
       localStorage.setItem(
         "refresh_token",
@@ -43,8 +70,13 @@ export function AuthProvider({ children }) {
   // ==========================================================
 
   const clearAuth = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    localStorage.removeItem(
+      "access_token"
+    );
+
+    localStorage.removeItem(
+      "refresh_token"
+    );
 
     setAccessToken("");
     setUser(null);
@@ -75,27 +107,18 @@ export function AuthProvider({ children }) {
       }
     );
 
-    const result = await response.json();
+    const result =
+      await response.json();
 
     if (!response.ok) {
       throw new Error(
         result.detail ||
           result.message ||
           result.non_field_errors?.[0] ||
+          result.username?.[0] ||
           "Invalid username or password."
       );
     }
-
-    /*
-      Your current backend login response
-      returns:
-
-      {
-        message: "Login successful.",
-        access: "...",
-        refresh: "..."
-      }
-    */
 
     if (!result.access) {
       throw new Error(
@@ -103,10 +126,23 @@ export function AuthProvider({ children }) {
       );
     }
 
+    if (!result.refresh) {
+      throw new Error(
+        "Login succeeded but refresh token was not returned."
+      );
+    }
+
     saveTokens(
       result.access,
       result.refresh
     );
+
+    // Keep the user returned by login when
+    // available. This avoids an unnecessary
+    // immediate /me request in the UI.
+    if (result.user) {
+      setUser(result.user);
+    }
 
     return result;
   };
@@ -142,24 +178,6 @@ export function AuthProvider({ children }) {
     const result =
       await response.json();
 
-    /*
-      Backend response:
-
-      {
-        user: {
-          id,
-          username,
-          email,
-          role,
-          ...
-        }
-      }
-
-      Some implementations may return
-      the user object directly, so both
-      formats are supported.
-    */
-
     const currentUser =
       result.user || result;
 
@@ -173,59 +191,84 @@ export function AuthProvider({ children }) {
   // ==========================================================
 
   const refreshAccessToken = async () => {
+    // If another request is already refreshing,
+    // wait for that exact refresh operation.
+    if (refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
+    }
+
     const refreshToken =
       localStorage.getItem(
         "refresh_token"
       );
 
     if (!refreshToken) {
-      return null;
-    }
-
-    try {
-      const response = await fetch(
-        `${API}/auth/refresh/`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            refresh: refreshToken,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        clearAuth();
-        return null;
-      }
-
-      const result =
-        await response.json();
-
-      if (!result.access) {
-        clearAuth();
-        return null;
-      }
-
-      localStorage.setItem(
-        "access_token",
-        result.access
-      );
-
-      setAccessToken(
-        result.access
-      );
-
-      return result.access;
-    } catch {
       clearAuth();
       return null;
     }
+
+    const refreshPromise =
+      (async () => {
+        try {
+          const response =
+            await fetch(
+              `${API}/auth/refresh/`,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body: JSON.stringify({
+                  refresh:
+                    refreshToken,
+                }),
+              }
+            );
+
+          if (!response.ok) {
+            clearAuth();
+            return null;
+          }
+
+          const result =
+            await response.json();
+
+          if (!result.access) {
+            clearAuth();
+            return null;
+          }
+
+          // Because the backend uses:
+          //
+          // ROTATE_REFRESH_TOKENS = True
+          //
+          // and:
+          //
+          // BLACKLIST_AFTER_ROTATION = True
+          //
+          // we MUST save the newly returned
+          // refresh token whenever one is supplied.
+          saveTokens(
+            result.access,
+            result.refresh
+          );
+
+          return result.access;
+        } catch {
+          clearAuth();
+          return null;
+        } finally {
+          refreshPromiseRef.current = null;
+        }
+      })();
+
+    refreshPromiseRef.current =
+      refreshPromise;
+
+    return refreshPromise;
   };
 
   // ==========================================================
@@ -233,15 +276,47 @@ export function AuthProvider({ children }) {
   // ==========================================================
 
   const logout = async () => {
-    /*
-      We clear the frontend tokens immediately.
+    const refreshToken =
+      localStorage.getItem(
+        "refresh_token"
+      );
 
-      If your backend later gets a dedicated
-      logout/blacklist endpoint, we can call
-      it here as well.
-    */
+    const token =
+      localStorage.getItem(
+        "access_token"
+      );
 
-    clearAuth();
+    try {
+      if (
+        refreshToken &&
+        token
+      ) {
+        await fetch(
+          `${API}/auth/logout/`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Authorization:
+                `Bearer ${token}`,
+            },
+
+            body: JSON.stringify({
+              refresh:
+                refreshToken,
+            }),
+          }
+        );
+      }
+    } catch {
+      // Frontend cleanup must still happen
+      // if the backend is unreachable.
+    } finally {
+      clearAuth();
+    }
   };
 
   // ==========================================================
@@ -249,44 +324,39 @@ export function AuthProvider({ children }) {
   // ==========================================================
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const storedToken =
-        localStorage.getItem(
-          "access_token"
-        );
+    const initializeAuth =
+      async () => {
+        const storedToken =
+          localStorage.getItem(
+            "access_token"
+          );
 
-      if (!storedToken) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        await fetchCurrentUser(
-          storedToken
-        );
-      } catch {
-        /*
-          Access token may have expired.
-
-          Try refresh token.
-        */
-
-        const newToken =
-          await refreshAccessToken();
-
-        if (newToken) {
-          try {
-            await fetchCurrentUser(
-              newToken
-            );
-          } catch {
-            clearAuth();
-          }
+        if (!storedToken) {
+          setLoading(false);
+          return;
         }
-      } finally {
-        setLoading(false);
-      }
-    };
+
+        try {
+          await fetchCurrentUser(
+            storedToken
+          );
+        } catch {
+          const newToken =
+            await refreshAccessToken();
+
+          if (newToken) {
+            try {
+              await fetchCurrentUser(
+                newToken
+              );
+            } catch {
+              clearAuth();
+            }
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
 
     initializeAuth();
   }, []);
@@ -304,12 +374,12 @@ export function AuthProvider({ children }) {
         "access_token"
       );
 
-    const headers = {
+    const initialHeaders = {
       ...(options.headers || {}),
     };
 
     if (token) {
-      headers.Authorization =
+      initialHeaders.Authorization =
         `Bearer ${token}`;
     }
 
@@ -318,15 +388,12 @@ export function AuthProvider({ children }) {
         url,
         {
           ...options,
-          headers,
+          headers: initialHeaders,
         }
       );
 
-    /*
-      If access token expired,
-      refresh it and retry once.
-    */
-
+    // Retry a request only once after a
+    // 401 response.
     if (
       response.status === 401
     ) {
@@ -371,7 +438,10 @@ export function AuthProvider({ children }) {
     loading,
 
     isAuthenticated:
-      Boolean(user && accessToken),
+      Boolean(
+        user &&
+        accessToken
+      ),
 
     login,
 

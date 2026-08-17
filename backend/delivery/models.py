@@ -44,20 +44,6 @@ class RepositoryConfig(models.Model):
         default="main",
     )
 
-    # ==========================================================
-    # LEGACY / BACKWARD COMPATIBILITY
-    # ==========================================================
-
-    # Existing single target configuration.
-    #
-    # Examples:
-    #
-    # build.sh
-    # logs/
-    # backend/logs/
-    #
-    # This is kept so existing repositories continue to work.
-
     target_path = models.CharField(
         max_length=500,
         default="logs",
@@ -72,10 +58,6 @@ class RepositoryConfig(models.Model):
         default=list,
     )
 
-    # ==========================================================
-    # MULTIPLE TARGETS
-    # ==========================================================
-
     targets = models.JSONField(
         default=list,
         blank=True,
@@ -85,27 +67,6 @@ class RepositoryConfig(models.Model):
             "allowed extensions."
         ),
     )
-
-    # Example:
-    #
-    # [
-    #     {
-    #         "path": "backend/requirements.txt",
-    #         "extensions": [".txt"]
-    #     },
-    #     {
-    #         "path": "backend/build.sh",
-    #         "extensions": [".sh"]
-    #     },
-    #     {
-    #         "path": "frontend/package.json",
-    #         "extensions": [".json"]
-    #     }
-    # ]
-
-    # ==========================================================
-    # DELIVERY CONFIGURATION
-    # ==========================================================
 
     recipients = models.JSONField(
         default=list,
@@ -121,10 +82,6 @@ class RepositoryConfig(models.Model):
         default=True,
     )
 
-    # ==========================================================
-    # CONNECTION STATUS
-    # ==========================================================
-
     connection_status = models.CharField(
         max_length=30,
         default="UNKNOWN",
@@ -134,10 +91,6 @@ class RepositoryConfig(models.Model):
         null=True,
         blank=True,
     )
-
-    # ==========================================================
-    # TIMESTAMPS
-    # ==========================================================
 
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -152,14 +105,6 @@ class RepositoryConfig(models.Model):
 
 
 class RepositoryCredential(models.Model):
-    """
-    Stores authentication information for a repository.
-
-    IMPORTANT:
-    The actual access token must be stored encrypted.
-
-    Never return encrypted_token through an API serializer.
-    """
 
     class AuthType(models.TextChoices):
         NONE = "NONE", "Public / No Authentication"
@@ -183,8 +128,6 @@ class RepositoryCredential(models.Model):
         blank=True,
     )
 
-    # NEVER store the raw GitHub token here.
-    # This field contains the encrypted value.
     encrypted_token = models.TextField(
         blank=True,
     )
@@ -282,10 +225,6 @@ class DeliveryJob(models.Model):
         auto_now_add=True,
     )
 
-    # ==========================================================
-    # DURATION
-    # ==========================================================
-
     @property
     def duration_seconds(self):
 
@@ -304,4 +243,93 @@ class DeliveryJob(models.Model):
         return (
             self.job_reference
             or f"Job {self.pk}"
+        )
+
+
+# ============================================================
+# AUDIT LOG
+# ============================================================
+
+class AuditLog(models.Model):
+    """
+    Immutable application audit record.
+
+    Captures who performed an action, what resource was affected,
+    when it happened, the originating IP address, and safe
+    contextual metadata.
+
+    Never store passwords, JWTs, repository tokens, SMTP
+    credentials, secret keys, or other sensitive credentials
+    in metadata.
+    """
+
+    user = models.ForeignKey(
+        "authentication.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+    )
+
+    action = models.CharField(
+        max_length=100,
+    )
+
+    resource = models.CharField(
+        max_length=100,
+    )
+
+    resource_id = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+    )
+
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-timestamp",
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "user",
+                    "-timestamp",
+                ],
+                name="audit_user_time_idx",
+            ),
+            models.Index(
+                fields=[
+                    "action",
+                    "-timestamp",
+                ],
+                name="audit_action_time_idx",
+            ),
+            models.Index(
+                fields=[
+                    "resource",
+                    "-timestamp",
+                ],
+                name="audit_resource_time_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.action} "
+            f"on {self.resource} "
+            f"{self.resource_id or ''}".strip()
         )

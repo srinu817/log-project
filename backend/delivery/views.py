@@ -97,14 +97,11 @@ class DashboardView(APIView):
 # ==========================================================
 # REPOSITORIES
 # ==========================================================
-from rest_framework.permissions import (
-    IsAuthenticated,
-)
-
 from authentication.permissions import (
     IsAdmin,
     IsManagerOrAdmin,
 )
+
 class RepositoryListView(APIView):
 
     def get_permissions(self):
@@ -503,7 +500,7 @@ class RepositoryTestConnectionView(APIView):
 class RepositoryBranchesView(APIView):
 
     permission_classes = [
-        IsManagerOrAdmin
+        IsAuthenticated
     ]
 
     def get(self, request, pk):
@@ -747,7 +744,14 @@ class RepositoryBranchesPreviewView(APIView):
 
     The PAT is used only for this request.
     It is NOT stored in the database.
+
+    This endpoint accepts a raw repository credential,
+    so repository-management privileges are required.
     """
+
+    permission_classes = [
+        IsManagerOrAdmin
+    ]
 
     def post(self, request):
 
@@ -902,7 +906,7 @@ class RepositoryBranchesPreviewView(APIView):
                     )
                 )
 
-            except SecurityViolation as exc:
+            except SecurityViolation:
 
                 return Response(
                     {
@@ -912,8 +916,6 @@ class RepositoryBranchesPreviewView(APIView):
                             "Unable to process "
                             "repository credential."
                         ),
-
-                        "error": str(exc),
                     },
 
                     status=status.HTTP_400_BAD_REQUEST,
@@ -1077,7 +1079,7 @@ class RepositoryBranchesPreviewView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        except SecurityViolation as exc:
+        except SecurityViolation:
 
             return Response(
                 {
@@ -1087,8 +1089,6 @@ class RepositoryBranchesPreviewView(APIView):
                         "Unable to process "
                         "repository credential."
                     ),
-
-                    "error": str(exc),
                 },
 
                 status=status.HTTP_400_BAD_REQUEST,
@@ -1125,9 +1125,21 @@ class JobListView(APIView):
     Multiple targets are supported.
     """
 
-    permission_classes = [
-        IsAuthenticated
-    ]
+    def get_permissions(self):
+
+        if self.request.method == "GET":
+            return [
+                IsAuthenticated()
+            ]
+
+        if self.request.method == "POST":
+            return [
+                IsManagerOrAdmin()
+            ]
+
+        return [
+            IsAuthenticated()
+        ]
 
     # ------------------------------------------------------
     # GET JOBS

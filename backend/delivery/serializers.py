@@ -323,7 +323,41 @@ class RepositorySerializer(
 
         model = RepositoryConfig
 
-        fields = "__all__"
+        # Explicit allow-list.
+        #
+        # Do NOT use fields = "__all__" here.
+        # RepositoryConfig may gain sensitive fields in the
+        # future, and an explicit allow-list prevents a newly
+        # added model field from automatically becoming part
+        # of the API response.
+        fields = [
+            "id",
+            "name",
+            "description",
+            "repository_type",
+            "repository_url",
+            "local_path",
+            "branch",
+            "target_path",
+            "log_directory",
+            "extensions",
+            "targets",
+            "recipients",
+            "email_mode",
+            "active",
+            "connection_status",
+            "last_connection_check",
+            "created_at",
+            "updated_at",
+
+            # Write-only credential inputs.
+            "auth_type",
+            "username",
+            "access_token",
+
+            # Safe credential status.
+            "authentication_configured",
+        ]
 
         read_only_fields = [
             "id",
@@ -331,6 +365,7 @@ class RepositorySerializer(
             "last_connection_check",
             "created_at",
             "updated_at",
+            "authentication_configured",
         ]
 
     # ==========================================================

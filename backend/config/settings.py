@@ -1,39 +1,279 @@
 from pathlib import Path
 import os
+
 from dotenv import load_dotenv
+from datetime import timedelta
+
+
+# ==========================================================
+# BASE CONFIGURATION
+# ==========================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-only-change-me')
-DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-AUTH_USER_MODEL = "authentication.User"
+load_dotenv(
+    BASE_DIR / ".env"
+)
+
+
+# ==========================================================
+# DJANGO CORE
+# ==========================================================
+
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "dev-only-change-me",
+)
+
+DEBUG = (
+    os.getenv(
+        "DJANGO_DEBUG",
+        "False",
+    ).lower()
+    == "true"
+)
+
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv(
+        "DJANGO_ALLOWED_HOSTS",
+        "127.0.0.1,localhost",
+    ).split(",")
+    if host.strip()
+]
+
+
+# ==========================================================
+# APPLICATION
+# ==========================================================
+
+AUTH_USER_MODEL = (
+    "authentication.User"
+)
+
+
 INSTALLED_APPS = [
-    'django.contrib.admin','django.contrib.auth','django.contrib.contenttypes',
-    'django.contrib.sessions','django.contrib.messages','django.contrib.staticfiles',
-    'corsheaders','rest_framework','delivery','authentication',"rest_framework_simplejwt.token_blacklist",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+
+    "corsheaders",
+    "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
+
+    "delivery",
+    "authentication",
 ]
+
+
+# ==========================================================
+# MIDDLEWARE
+# ==========================================================
+
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware','django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware','django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware','django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware','django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+
+    "django.middleware.security.SecurityMiddleware",
+
+    "django.contrib.sessions.middleware.SessionMiddleware",
+
+    "django.middleware.common.CommonMiddleware",
+
+    "django.middleware.csrf.CsrfViewMiddleware",
+
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+
+    "django.contrib.messages.middleware.MessageMiddleware",
+
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-ROOT_URLCONF = 'config.urls'
-TEMPLATES = [{'BACKEND':'django.template.backends.django.DjangoTemplates','DIRS':[], 'APP_DIRS':True,
- 'OPTIONS':{'context_processors':['django.template.context_processors.request','django.contrib.auth.context_processors.auth','django.contrib.messages.context_processors.messages']}}]
-WSGI_APPLICATION = 'config.wsgi.application'
-DATABASES = {'default': {'ENGINE':'django.db.backends.sqlite3','NAME':BASE_DIR/'db.sqlite3'}}
-AUTH_PASSWORD_VALIDATORS = []
-LANGUAGE_CODE='en-us'; TIME_ZONE='Asia/Kolkata'; USE_I18N=True; USE_TZ=True
-STATIC_URL='static/'
-DEFAULT_AUTO_FIELD='django.db.models.BigAutoField'
-CORS_ALLOWED_ORIGINS = ['http://localhost:5173','http://127.0.0.1:5173']
-REST_FRAMEWORK = {'DEFAULT_PERMISSION_CLASSES':['rest_framework.permissions.AllowAny']}
 
 
-import os
+# ==========================================================
+# URL / TEMPLATE / WSGI
+# ==========================================================
+
+ROOT_URLCONF = "config.urls"
+
+
+TEMPLATES = [
+    {
+        "BACKEND": (
+            "django.template.backends.django.DjangoTemplates"
+        ),
+
+        "DIRS": [],
+
+        "APP_DIRS": True,
+
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+
+                "django.contrib.auth.context_processors.auth",
+
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+
+WSGI_APPLICATION = (
+    "config.wsgi.application"
+)
+
+
+# ==========================================================
+# DATABASE
+# ==========================================================
+
+DATABASES = {
+    "default": {
+        "ENGINE": (
+            "django.db.backends.sqlite3"
+        ),
+        "NAME": (
+            BASE_DIR / "db.sqlite3"
+        ),
+    }
+}
+
+
+# ==========================================================
+# PASSWORD SECURITY
+# ==========================================================
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "UserAttributeSimilarityValidator"
+        ),
+    },
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "MinimumLengthValidator"
+        ),
+        "OPTIONS": {
+            "min_length": 8,
+        },
+    },
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "CommonPasswordValidator"
+        ),
+    },
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "NumericPasswordValidator"
+        ),
+    },
+]
+
+
+# ==========================================================
+# INTERNATIONALIZATION
+# ==========================================================
+
+LANGUAGE_CODE = "en-us"
+
+TIME_ZONE = "Asia/Kolkata"
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# ==========================================================
+# STATIC FILES
+# ==========================================================
+
+STATIC_URL = "static/"
+
+DEFAULT_AUTO_FIELD = (
+    "django.db.models.BigAutoField"
+)
+
+
+# ==========================================================
+# CORS
+# ==========================================================
+
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        (
+            "http://localhost:5173,"
+            "http://127.0.0.1:5173"
+        ),
+    ).split(",")
+    if origin.strip()
+]
+
+
+# ==========================================================
+# DJANGO REST FRAMEWORK
+# ==========================================================
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/hour",
+        "user": "1000/hour",
+        "login": "10/minute",
+        "signup": "5/minute",
+    },
+}
+
+# ==========================================================
+# JWT SECURITY
+# ==========================================================
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=15
+    ),
+
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=7
+    ),
+
+    "ROTATE_REFRESH_TOKENS": True,
+
+    "BLACKLIST_AFTER_ROTATION": True,
+
+    "UPDATE_LAST_LOGIN": True,
+
+    "AUTH_HEADER_TYPES": (
+        "Bearer",
+    ),
+}
+
+
+# ==========================================================
+# EMAIL / SMTP
+# ==========================================================
 
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND",
@@ -84,35 +324,31 @@ DEFAULT_FROM_EMAIL = os.getenv(
 )
 
 
-from datetime import timedelta
+# ==========================================================
+# PRODUCTION SECURITY
+#
+# These settings activate only when DEBUG=False.
+# Local HTTP development therefore continues to work.
+# ==========================================================
 
+if not DEBUG:
 
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
-}
+    SECURE_SSL_REDIRECT = True
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(
-        minutes=30
-    ),
+    SESSION_COOKIE_SECURE = True
 
-    "REFRESH_TOKEN_LIFETIME": timedelta(
-        days=7
-    ),
+    CSRF_COOKIE_SECURE = True
 
-    "ROTATE_REFRESH_TOKENS": True,
+    SECURE_HSTS_SECONDS = 31536000
 
-    "BLACKLIST_AFTER_ROTATION": True,
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
-    "UPDATE_LAST_LOGIN": True,
+    SECURE_HSTS_PRELOAD = True
 
-    "AUTH_HEADER_TYPES": (
-        "Bearer",
-    ),
-}
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
+    SECURE_REFERRER_POLICY = (
+        "strict-origin-when-cross-origin"
+    )
+
+    X_FRAME_OPTIONS = "DENY"
