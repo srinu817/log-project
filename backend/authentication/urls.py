@@ -9,12 +9,18 @@ from .views import (
     SignupView,
     LogoutView,
     MeView,
+    ForgotPasswordView,
+    ResetPasswordView,
     UserManagementListView,
     UserManagementDetailView,
 )
 
 
 urlpatterns = [
+
+    # ============================================================
+    # PUBLIC AUTHENTICATION
+    # ============================================================
 
     path(
         "signup/",
@@ -34,6 +40,26 @@ urlpatterns = [
         name="token-refresh",
     ),
 
+    # ============================================================
+    # PASSWORD RESET
+    # ============================================================
+
+    path(
+        "forgot-password/",
+        ForgotPasswordView.as_view(),
+        name="forgot-password",
+    ),
+
+    path(
+        "reset-password/<uid>/<token>/",
+        ResetPasswordView.as_view(),
+        name="reset-password",
+    ),
+
+    # ============================================================
+    # AUTHENTICATED USER
+    # ============================================================
+
     path(
         "logout/",
         LogoutView.as_view(),
@@ -45,6 +71,10 @@ urlpatterns = [
         MeView.as_view(),
         name="me",
     ),
+
+    # ============================================================
+    # ADMIN USER MANAGEMENT
+    # ============================================================
 
     path(
         "users/",

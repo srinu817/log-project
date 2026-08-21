@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from .models import (
@@ -11,6 +12,10 @@ from .services.security_service import (
 )
 
 
+# ==========================================================
+# REPOSITORY SERIALIZER
+# ==========================================================
+
 class RepositorySerializer(
     serializers.ModelSerializer
 ):
@@ -20,6 +25,7 @@ class RepositorySerializer(
     Handles:
 
         - Repository configuration
+        - Repository ownership
         - Multiple targets
         - Legacy target configuration
         - PAT authentication
@@ -31,6 +37,11 @@ class RepositorySerializer(
 
         It can be submitted by the frontend,
         but it is NEVER returned in API responses.
+
+    created_by is controlled by the backend.
+
+    The frontend cannot choose or change the owner
+    of a repository.
     """
 
     # ==========================================================
@@ -55,6 +66,14 @@ class RepositorySerializer(
         required=False,
         allow_blank=True,
         trim_whitespace=False,
+    )
+
+    # ==========================================================
+    # REPOSITORY OWNER
+    # ==========================================================
+
+    created_by = serializers.PrimaryKeyRelatedField(
+        read_only=True,
     )
 
     # Safe information returned to frontend.
@@ -324,12 +343,6 @@ class RepositorySerializer(
         model = RepositoryConfig
 
         # Explicit allow-list.
-        #
-        # Do NOT use fields = "__all__" here.
-        # RepositoryConfig may gain sensitive fields in the
-        # future, and an explicit allow-list prevents a newly
-        # added model field from automatically becoming part
-        # of the API response.
         fields = [
             "id",
             "name",
@@ -350,6 +363,9 @@ class RepositorySerializer(
             "created_at",
             "updated_at",
 
+            # Repository owner.
+            "created_by",
+
             # Write-only credential inputs.
             "auth_type",
             "username",
@@ -361,10 +377,15 @@ class RepositorySerializer(
 
         read_only_fields = [
             "id",
+            "active",
             "connection_status",
             "last_connection_check",
             "created_at",
             "updated_at",
+
+            # Backend-controlled ownership.
+            "created_by",
+
             "authentication_configured",
         ]
 
@@ -797,6 +818,7 @@ class RepositorySerializer(
     # CREATE
     # ==========================================================
 
+    @transaction.atomic
     def create(
         self,
         validated_data,
@@ -804,6 +826,14 @@ class RepositorySerializer(
         """
         Create RepositoryConfig and
         its credential record.
+
+        created_by is supplied by the backend:
+
+            serializer.save(
+                created_by=request.user
+            )
+
+        The frontend cannot control ownership.
         """
 
         auth_type = validated_data.pop(
@@ -855,17 +885,28 @@ class RepositorySerializer(
     # UPDATE
     # ==========================================================
 
+    @transaction.atomic
     def update(
         self,
         instance,
         validated_data,
     ):
         """
-        Update repository configuration
-        and credentials.
+        Update repository configuration and credentials.
 
-        If access_token is omitted,
-        the existing token remains unchanged.
+        PAT rules:
+
+            1. New PAT supplied:
+               create or replace the encrypted credential.
+
+            2. PAT selected + blank PAT + existing credential:
+               keep the existing encrypted credential.
+
+            3. PAT selected + blank PAT + no credential:
+               reject the update clearly.
+
+            4. NONE selected:
+               clear any stored credential.
         """
 
         auth_type = validated_data.pop(
@@ -887,9 +928,7 @@ class RepositorySerializer(
         # UPDATE REPOSITORY FIELDS
         # ======================================================
 
-        for attr, value in (
-            validated_data.items()
-        ):
+        for attr, value in validated_data.items():
 
             setattr(
                 instance,
@@ -900,67 +939,185 @@ class RepositorySerializer(
         instance.save()
 
         # ======================================================
-        # CREDENTIAL RECORD
+        # FIND EXISTING CREDENTIAL
         # ======================================================
 
-        credential, created = (
+        credential = (
             RepositoryCredential.objects
-            .get_or_create(
-                repository=instance,
-
-                defaults={
-                    "auth_type": (
-                        auth_type
-                        or RepositoryCredential.AuthType.NONE
-                    ),
-
-                    "username": (
-                        username or ""
-                    ),
-                },
+            .filter(
+                repository=instance
             )
+            .first()
         )
 
-        if auth_type is not None:
+        # If auth_type was omitted by PATCH, preserve the
+        # existing credential type when possible.
+        if auth_type is None:
 
-            credential.auth_type = (
-                auth_type
-            )
+            if credential:
+                auth_type = credential.auth_type
 
-        if username is not None:
-
-            credential.username = (
-                username
-            )
-
-        # ======================================================
-        # NEW TOKEN
-        # ======================================================
-
-        if access_token:
-
-            credential.encrypted_token = (
-                SecurityService.encrypt_secret(
-                    access_token
+            else:
+                auth_type = (
+                    RepositoryCredential.AuthType.NONE
                 )
-            )
 
         # ======================================================
-        # PUBLIC REPOSITORY
+        # PAT AUTHENTICATION
         # ======================================================
 
         if (
-            credential.auth_type
+            auth_type
+            == RepositoryCredential.AuthType.PAT
+        ):
+
+            # --------------------------------------------------
+            # USERNAME
+            # --------------------------------------------------
+
+            if username is None:
+
+                username = (
+                    credential.username
+                    if credential
+                    else ""
+                )
+
+            username = str(
+                username or ""
+            ).strip()
+
+            if not username:
+
+                raise serializers.ValidationError(
+                    {
+                        "username": (
+                            "Username is required "
+                            "for PAT authentication."
+                        )
+                    }
+                )
+
+            # --------------------------------------------------
+            # NEW PAT SUPPLIED
+            # --------------------------------------------------
+
+            if access_token:
+
+                encrypted_token = (
+                    SecurityService.encrypt_secret(
+                        access_token
+                    )
+                )
+
+                if credential is None:
+
+                    RepositoryCredential.objects.create(
+                        repository=instance,
+                        auth_type=auth_type,
+                        username=username,
+                        encrypted_token=encrypted_token,
+                    )
+
+                else:
+
+                    credential.auth_type = auth_type
+                    credential.username = username
+                    credential.encrypted_token = (
+                        encrypted_token
+                    )
+
+                    credential.save()
+
+                return instance
+
+            # --------------------------------------------------
+            # PAT BLANK DURING EDIT
+            # --------------------------------------------------
+
+            if credential is None:
+
+                raise serializers.ValidationError(
+                    {
+                        "access_token": (
+                            "This repository is configured "
+                            "for PAT authentication, but no "
+                            "credential is stored. Please "
+                            "enter the Personal Access Token "
+                            "again."
+                        )
+                    }
+                )
+
+            if not credential.encrypted_token:
+
+                raise serializers.ValidationError(
+                    {
+                        "access_token": (
+                            "No Personal Access Token is "
+                            "stored for this repository. "
+                            "Please enter the PAT again."
+                        )
+                    }
+                )
+
+            credential.auth_type = auth_type
+            credential.username = username
+
+            credential.save(
+                update_fields=[
+                    "auth_type",
+                    "username",
+                ]
+            )
+
+            return instance
+
+        # ======================================================
+        # PUBLIC / NONE AUTHENTICATION
+        # ======================================================
+
+        if (
+            auth_type
             == RepositoryCredential.AuthType.NONE
         ):
 
-            credential.username = ""
+            if credential:
 
-            credential.encrypted_token = ""
+                credential.auth_type = (
+                    RepositoryCredential.AuthType.NONE
+                )
 
-        credential.save()
+                credential.username = ""
+                credential.encrypted_token = ""
 
-        return instance
+                credential.save()
+
+            else:
+
+                RepositoryCredential.objects.create(
+                    repository=instance,
+                    auth_type=(
+                        RepositoryCredential.AuthType.NONE
+                    ),
+                    username="",
+                    encrypted_token="",
+                )
+
+            return instance
+
+        # ======================================================
+        # UNSUPPORTED AUTH TYPE
+        # ======================================================
+
+        raise serializers.ValidationError(
+            {
+                "auth_type": (
+                    f"Unsupported authentication type: "
+                    f"{auth_type}"
+                )
+            }
+        )
 
     # ==========================================================
     # SAFE AUTH STATUS
@@ -1019,6 +1176,14 @@ class JobSerializer(
         read_only=True,
     )
 
+    # ==========================================================
+    # JOB OWNER
+    # ==========================================================
+
+    created_by = serializers.PrimaryKeyRelatedField(
+        read_only=True,
+    )
+
     class Meta:
 
         model = DeliveryJob
@@ -1038,4 +1203,7 @@ class JobSerializer(
             "started_at",
             "finished_at",
             "created_at",
+
+            # Backend-controlled owner.
+            "created_by",
         ]

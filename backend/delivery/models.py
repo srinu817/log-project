@@ -14,6 +14,10 @@ class RepositoryConfig(models.Model):
         SIMULATION = "SIMULATION", "Simulation"
         SMTP = "SMTP"
 
+    # ==========================================================
+    # BASIC REPOSITORY INFORMATION
+    # ==========================================================
+
     name = models.CharField(
         max_length=120,
         unique=True,
@@ -54,6 +58,10 @@ class RepositoryConfig(models.Model):
         default="logs",
     )
 
+    # ==========================================================
+    # LOG CONFIGURATION
+    # ==========================================================
+
     extensions = models.JSONField(
         default=list,
     )
@@ -72,11 +80,19 @@ class RepositoryConfig(models.Model):
         default=list,
     )
 
+    # ==========================================================
+    # EMAIL
+    # ==========================================================
+
     email_mode = models.CharField(
         max_length=30,
         choices=EmailMode.choices,
         default=EmailMode.SIMULATION,
     )
+
+    # ==========================================================
+    # STATUS
+    # ==========================================================
 
     active = models.BooleanField(
         default=True,
@@ -92,6 +108,25 @@ class RepositoryConfig(models.Model):
         blank=True,
     )
 
+    # ==========================================================
+    # OWNERSHIP / RBAC
+    # ==========================================================
+
+    created_by = models.ForeignKey(
+        "authentication.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repositories",
+        help_text=(
+            "User who created this repository configuration."
+        ),
+    )
+
+    # ==========================================================
+    # TIMESTAMPS
+    # ==========================================================
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -103,6 +138,10 @@ class RepositoryConfig(models.Model):
     def __str__(self):
         return self.name
 
+
+# ==============================================================
+# REPOSITORY CREDENTIAL
+# ==============================================================
 
 class RepositoryCredential(models.Model):
 
@@ -147,6 +186,10 @@ class RepositoryCredential(models.Model):
         )
 
 
+# ==============================================================
+# DELIVERY JOB
+# ==============================================================
+
 class DeliveryJob(models.Model):
 
     class Status(models.TextChoices):
@@ -155,6 +198,10 @@ class DeliveryJob(models.Model):
         SUCCESS = "SUCCESS", "Success"
         FAILED = "FAILED", "Failed"
         DRY_RUN = "DRY_RUN", "Dry Run"
+
+    # ==========================================================
+    # JOB INFORMATION
+    # ==========================================================
 
     job_reference = models.CharField(
         max_length=50,
@@ -170,6 +217,25 @@ class DeliveryJob(models.Model):
         related_name="jobs",
     )
 
+    # ==========================================================
+    # JOB OWNER / RBAC
+    # ==========================================================
+
+    created_by = models.ForeignKey(
+        "authentication.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery_jobs",
+        help_text=(
+            "User who started this delivery job."
+        ),
+    )
+
+    # ==========================================================
+    # STATUS
+    # ==========================================================
+
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -179,6 +245,10 @@ class DeliveryJob(models.Model):
     is_dry_run = models.BooleanField(
         default=False,
     )
+
+    # ==========================================================
+    # DELIVERY RESULT
+    # ==========================================================
 
     files_count = models.PositiveIntegerField(
         default=0,
@@ -211,6 +281,10 @@ class DeliveryJob(models.Model):
         blank=True,
     )
 
+    # ==========================================================
+    # TIMESTAMPS
+    # ==========================================================
+
     started_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -224,6 +298,10 @@ class DeliveryJob(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
+
+    # ==========================================================
+    # DURATION
+    # ==========================================================
 
     @property
     def duration_seconds(self):
@@ -246,9 +324,9 @@ class DeliveryJob(models.Model):
         )
 
 
-# ============================================================
+# ==============================================================
 # AUDIT LOG
-# ============================================================
+# ==============================================================
 
 class AuditLog(models.Model):
     """

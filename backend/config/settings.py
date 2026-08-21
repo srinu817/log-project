@@ -22,13 +22,13 @@ load_dotenv(
 
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
-    "dev-only-change-me",
+    "local-development-secret-key-change-me",
 )
 
 DEBUG = (
     os.getenv(
         "DJANGO_DEBUG",
-        "False",
+        "True",
     ).lower()
     == "true"
 )
@@ -48,9 +48,7 @@ ALLOWED_HOSTS = [
 # APPLICATION
 # ==========================================================
 
-AUTH_USER_MODEL = (
-    "authentication.User"
-)
+AUTH_USER_MODEL = "authentication.User"
 
 
 INSTALLED_APPS = [
@@ -123,9 +121,7 @@ TEMPLATES = [
 ]
 
 
-WSGI_APPLICATION = (
-    "config.wsgi.application"
-)
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # ==========================================================
@@ -134,12 +130,9 @@ WSGI_APPLICATION = (
 
 DATABASES = {
     "default": {
-        "ENGINE": (
-            "django.db.backends.sqlite3"
-        ),
-        "NAME": (
-            BASE_DIR / "db.sqlite3"
-        ),
+        "ENGINE": "django.db.backends.sqlite3",
+
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -155,21 +148,25 @@ AUTH_PASSWORD_VALIDATORS = [
             "UserAttributeSimilarityValidator"
         ),
     },
+
     {
         "NAME": (
             "django.contrib.auth.password_validation."
             "MinimumLengthValidator"
         ),
+
         "OPTIONS": {
             "min_length": 8,
         },
     },
+
     {
         "NAME": (
             "django.contrib.auth.password_validation."
             "CommonPasswordValidator"
         ),
     },
+
     {
         "NAME": (
             "django.contrib.auth.password_validation."
@@ -211,10 +208,7 @@ CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "CORS_ALLOWED_ORIGINS",
-        (
-            "http://localhost:5173,"
-            "http://127.0.0.1:5173"
-        ),
+        "http://localhost:5173,http://127.0.0.1:5173",
     ).split(",")
     if origin.strip()
 ]
@@ -245,6 +239,7 @@ REST_FRAMEWORK = {
         "signup": "5/minute",
     },
 }
+
 
 # ==========================================================
 # JWT SECURITY
@@ -325,30 +320,17 @@ DEFAULT_FROM_EMAIL = os.getenv(
 
 
 # ==========================================================
-# PRODUCTION SECURITY
-#
-# These settings activate only when DEBUG=False.
-# Local HTTP development therefore continues to work.
+# LOCAL DEVELOPMENT SECURITY
 # ==========================================================
 
-if not DEBUG:
-
-    SECURE_SSL_REDIRECT = True
-
-    SESSION_COOKIE_SECURE = True
-
-    CSRF_COOKIE_SECURE = True
-
-    SECURE_HSTS_SECONDS = 31536000
-
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-
-    SECURE_HSTS_PRELOAD = True
-
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-
-    SECURE_REFERRER_POLICY = (
-        "strict-origin-when-cross-origin"
-    )
-
-    X_FRAME_OPTIONS = "DENY"
+# IMPORTANT:
+# Local development uses HTTP only.
+#
+# Do NOT enable:
+#
+# SECURE_SSL_REDIRECT
+# SESSION_COOKIE_SECURE
+# CSRF_COOKIE_SECURE
+# HSTS
+#
+# Production HTTPS configuration will be added later.

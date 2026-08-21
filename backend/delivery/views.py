@@ -1,5 +1,4 @@
 from pathlib import Path
-from urllib import request
 from uuid import uuid4
 
 from django.shortcuts import get_object_or_404
@@ -11,6 +10,12 @@ from rest_framework import status
 from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
+)
+
+from authentication.permissions import (
+    IsAdmin,
+    IsManagerOrAdmin,
+    IsRepositoryOperator,
 )
 
 from .models import (
@@ -43,14 +48,111 @@ from .services.security_service import (
 
 
 # ==========================================================
+# ROLE HELPERS
+# ==========================================================
+
+def is_admin(user):
+    return (
+        user
+        and user.is_authenticated
+        and user.role == user.Role.ADMIN
+    )
+
+
+def is_manager(user):
+    return (
+        user
+        and user.is_authenticated
+        and user.role == user.Role.MANAGER
+    )
+
+
+def is_user(user):
+    return (
+        user
+        and user.is_authenticated
+        and user.role == user.Role.USER
+    )
+
+
+def can_manage_all_repositories(user):
+    """
+    ADMIN and MANAGER can manage repositories globally.
+    """
+
+    return (
+        is_admin(user)
+        or is_manager(user)
+    )
+
+
+def can_use_repository(user, repository):
+    """
+    ADMIN and MANAGER can access all repositories.
+
+    USER can access only repositories created by that USER.
+    """
+
+    if is_admin(user):
+        return True
+
+    if is_manager(user):
+        return True
+
+    if is_user(user):
+        return (
+            repository.created_by_id
+            == user.id
+        )
+
+    return False
+
+
+def can_run_delivery(user, repository):
+    """
+    ADMIN, MANAGER and USER can run deliveries.
+
+    USER can only run deliveries for repositories
+    owned by that USER.
+    """
+
+    return can_use_repository(
+        user,
+        repository,
+    )
+
+
+def can_test_repository(user, repository):
+    """
+    ADMIN and MANAGER can test any repository.
+
+    USER can test only their own repository.
+    """
+
+    return can_use_repository(
+        user,
+        repository,
+    )
+
+
+# ==========================================================
 # DASHBOARD
 # ==========================================================
 
 class DashboardView(APIView):
     """
-    Da
-    shboard summary and recent delivery activity.
+    Dashboard summary and recent delivery activity.
+
+    ADMIN:
+        All delivery activity.
+
+    MANAGER:
+        All delivery activity.
+
+    USER:
+        Only their own delivery activity.
     """
+
     permission_classes = [
         IsAuthenticated
     ]
@@ -58,8 +160,19 @@ class DashboardView(APIView):
     def get(self, request):
 
         jobs = DeliveryJob.objects.select_related(
-            "repository"
+            "repository",
+            "created_by",
         )
+
+        # ------------------------------------------------------
+        # USER DATA ISOLATION
+        # ------------------------------------------------------
+
+        if is_user(request.user):
+
+            jobs = jobs.filter(
+                created_by=request.user
+            )
 
         stats = {
             "total": jobs.count(),
@@ -97,22 +210,12 @@ class DashboardView(APIView):
 # ==========================================================
 # REPOSITORIES
 # ==========================================================
-from authentication.permissions import (
-    IsAdmin,
-    IsManagerOrAdmin,
-)
 
 class RepositoryListView(APIView):
 
-    def get_permissions(self):
-        if self.request.method == "GET":
-            return [
-                IsAuthenticated()
-            ]
-
-        return [
-            IsManagerOrAdmin()
-        ]
+    permission_classes = [
+        IsRepositoryOperator
+    ]
 
     def get(self, request):
 
@@ -122,6 +225,16 @@ class RepositoryListView(APIView):
             .prefetch_related("credential")
             .order_by("name")
         )
+
+        # ------------------------------------------------------
+        # USER SEES ONLY OWN REPOSITORIES
+        # ------------------------------------------------------
+
+        if is_user(request.user):
+
+            repositories = repositories.filter(
+                created_by=request.user
+            )
 
         serializer = RepositorySerializer(
             repositories,
@@ -142,7 +255,16 @@ class RepositoryListView(APIView):
             raise_exception=True
         )
 
-        repository = serializer.save()
+        # ------------------------------------------------------
+        # IMPORTANT
+        #
+        # Store the authenticated user as repository owner.
+        # This is what gives us user-level data isolation.
+        # ------------------------------------------------------
+
+        repository = serializer.save(
+            created_by=request.user
+        )
 
         return Response(
             RepositorySerializer(
@@ -160,26 +282,14 @@ class RepositoryDetailView(APIView):
 
     def get_permissions(self):
 
-        if self.request.method == "GET":
-            return [
-                IsAuthenticated()
-            ]
+        if self.request.method == "DELETE":
 
-        if self.request.method in {
-            "PUT",
-            "PATCH",
-        }:
             return [
                 IsManagerOrAdmin()
             ]
 
-        if self.request.method == "DELETE":
-            return [
-                IsAdmin()
-            ]
-
         return [
-            IsAuthenticated()
+            IsRepositoryOperator()
         ]
 
     def get_repository(self, pk):
@@ -190,6 +300,34 @@ class RepositoryDetailView(APIView):
             pk=pk,
         )
 
+    def check_repository_access(
+        self,
+        request,
+        repository,
+    ):
+        """
+        Validate whether the current user may access
+        this repository.
+        """
+
+        if not can_use_repository(
+            request.user,
+            repository,
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "You do not have permission "
+                        "to access this repository."
+                    )
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return None
+
     # ------------------------------------------------------
     # GET
     # ------------------------------------------------------
@@ -197,6 +335,16 @@ class RepositoryDetailView(APIView):
     def get(self, request, pk):
 
         repository = self.get_repository(pk)
+
+        access_error = (
+            self.check_repository_access(
+                request,
+                repository,
+            )
+        )
+
+        if access_error:
+            return access_error
 
         return Response(
             RepositorySerializer(
@@ -211,6 +359,16 @@ class RepositoryDetailView(APIView):
     def put(self, request, pk):
 
         repository = self.get_repository(pk)
+
+        access_error = (
+            self.check_repository_access(
+                request,
+                repository,
+            )
+        )
+
+        if access_error:
+            return access_error
 
         serializer = RepositorySerializer(
             repository,
@@ -237,6 +395,16 @@ class RepositoryDetailView(APIView):
 
         repository = self.get_repository(pk)
 
+        access_error = (
+            self.check_repository_access(
+                request,
+                repository,
+            )
+        )
+
+        if access_error:
+            return access_error
+
         serializer = RepositorySerializer(
             repository,
             data=request.data,
@@ -256,12 +424,31 @@ class RepositoryDetailView(APIView):
         )
 
     # ------------------------------------------------------
-    # DELETE
+    # DELETE / DEACTIVATE
     # ------------------------------------------------------
 
     def delete(self, request, pk):
 
         repository = self.get_repository(pk)
+
+        # ------------------------------------------------------
+        # ONLY ADMIN + MANAGER
+        # ------------------------------------------------------
+
+        if not can_manage_all_repositories(
+            request.user
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "Only Administrators and Managers "
+                        "can deactivate repositories."
+                    )
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         repository.active = False
 
@@ -284,10 +471,11 @@ class RepositoryDetailView(APIView):
 # ==========================================================
 # TEST REPOSITORY CONNECTION
 # ==========================================================
+
 class RepositoryTestConnectionView(APIView):
 
     permission_classes = [
-        IsManagerOrAdmin
+        IsRepositoryOperator
     ]
 
     def post(self, request, pk):
@@ -297,6 +485,27 @@ class RepositoryTestConnectionView(APIView):
             pk=pk,
             active=True,
         )
+
+        # ------------------------------------------------------
+        # USER CAN TEST ONLY OWN REPOSITORY
+        # ADMIN/MANAGER CAN TEST ANY REPOSITORY
+        # ------------------------------------------------------
+
+        if not can_test_repository(
+            request.user,
+            repository,
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "You do not have permission "
+                        "to test this repository."
+                    )
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         try:
 
@@ -497,10 +706,11 @@ class RepositoryTestConnectionView(APIView):
 # ==========================================================
 # REPOSITORY BRANCHES
 # ==========================================================
+
 class RepositoryBranchesView(APIView):
 
     permission_classes = [
-        IsAuthenticated
+        IsRepositoryOperator
     ]
 
     def get(self, request, pk):
@@ -510,6 +720,26 @@ class RepositoryBranchesView(APIView):
             pk=pk,
             active=True,
         )
+
+        # ------------------------------------------------------
+        # USER CAN FETCH BRANCHES ONLY FOR OWN REPOSITORY
+        # ------------------------------------------------------
+
+        if not can_use_repository(
+            request.user,
+            repository,
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "You do not have permission "
+                        "to access this repository."
+                    )
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         try:
 
@@ -599,20 +829,6 @@ class RepositoryBranchesView(APIView):
 
                     encrypted_token=encrypted_token,
                 )
-
-                # ==================================================
-                # IMPORTANT
-                # ==================================================
-                # get_branches() returns a dictionary:
-                #
-                # {
-                #     "status": "...",
-                #     "message": "...",
-                #     "branches": [...]
-                # }
-                #
-                # Extract only the actual branch list.
-                # ==================================================
 
                 if isinstance(
                     branch_result,
@@ -745,19 +961,14 @@ class RepositoryBranchesPreviewView(APIView):
     The PAT is used only for this request.
     It is NOT stored in the database.
 
-    This endpoint accepts a raw repository credential,
-    so repository-management privileges are required.
+    All authenticated users may test/preview branches.
     """
 
     permission_classes = [
-        IsManagerOrAdmin
+        IsAuthenticated
     ]
 
     def post(self, request):
-
-        # ==================================================
-        # REPOSITORY URL
-        # ==================================================
 
         repository_url = str(
             request.data.get(
@@ -780,10 +991,6 @@ class RepositoryBranchesPreviewView(APIView):
 
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # ==================================================
-        # AUTH TYPE
-        # ==================================================
 
         auth_type = str(
             request.data.get(
@@ -817,10 +1024,6 @@ class RepositoryBranchesPreviewView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ==================================================
-        # USERNAME
-        # ==================================================
-
         username = str(
             request.data.get(
                 "username",
@@ -829,10 +1032,6 @@ class RepositoryBranchesPreviewView(APIView):
             or ""
         ).strip()
 
-        # ==================================================
-        # ACCESS TOKEN
-        # ==================================================
-
         access_token = str(
             request.data.get(
                 "access_token",
@@ -840,8 +1039,6 @@ class RepositoryBranchesPreviewView(APIView):
             )
             or ""
         ).strip()
-
-        # Support alternate frontend names.
 
         if not access_token:
 
@@ -863,10 +1060,6 @@ class RepositoryBranchesPreviewView(APIView):
                 or ""
             ).strip()
 
-        # ==================================================
-        # PUBLIC REPOSITORY
-        # ==================================================
-
         if (
             auth_type
             == RepositoryCredential.AuthType.NONE
@@ -875,10 +1068,6 @@ class RepositoryBranchesPreviewView(APIView):
             username = ""
 
             encrypted_token = ""
-
-        # ==================================================
-        # PRIVATE REPOSITORY
-        # ==================================================
 
         else:
 
@@ -921,10 +1110,6 @@ class RepositoryBranchesPreviewView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # ==================================================
-        # FETCH BRANCHES
-        # ==================================================
-
         try:
 
             service = RepositoryService()
@@ -946,22 +1131,6 @@ class RepositoryBranchesPreviewView(APIView):
                     encrypted_token
                 ),
             )
-
-            # ==================================================
-            # IMPORTANT FIX
-            # ==================================================
-            #
-            # RepositoryService.get_branches()
-            # returns:
-            #
-            # {
-            #     "status": "CONNECTED",
-            #     "message": "...",
-            #     "branches": [...]
-            # }
-            #
-            # Extract the actual list.
-            # ==================================================
 
             if isinstance(
                 branch_result,
@@ -986,20 +1155,12 @@ class RepositoryBranchesPreviewView(APIView):
                     branches
                 )
 
-            # ==================================================
-            # VALIDATE RESULT
-            # ==================================================
-
             if not branches:
 
                 raise RepositoryServiceError(
                     "No branches were found "
                     "in the repository."
                 )
-
-            # ==================================================
-            # CURRENT BRANCH
-            # ==================================================
 
             if "main" in branches:
 
@@ -1013,10 +1174,6 @@ class RepositoryBranchesPreviewView(APIView):
 
                 current_branch = branches[0]
 
-            # ==================================================
-            # REPOSITORY TYPE
-            # ==================================================
-
             if "github.com" in repository_url.lower():
 
                 repository_type = (
@@ -1026,10 +1183,6 @@ class RepositoryBranchesPreviewView(APIView):
             else:
 
                 repository_type = "REMOTE"
-
-            # ==================================================
-            # RESPONSE
-            # ==================================================
 
             return Response(
                 {
@@ -1122,24 +1275,22 @@ class JobListView(APIView):
     """
     List delivery jobs and execute new jobs.
 
+    ADMIN:
+        See all jobs and execute deliveries.
+
+    MANAGER:
+        See all jobs and execute deliveries.
+
+    USER:
+        See own jobs and execute deliveries only
+        for own repositories.
+
     Multiple targets are supported.
     """
 
-    def get_permissions(self):
-
-        if self.request.method == "GET":
-            return [
-                IsAuthenticated()
-            ]
-
-        if self.request.method == "POST":
-            return [
-                IsManagerOrAdmin()
-            ]
-
-        return [
-            IsAuthenticated()
-        ]
+    permission_classes = [
+        IsRepositoryOperator
+    ]
 
     # ------------------------------------------------------
     # GET JOBS
@@ -1149,9 +1300,24 @@ class JobListView(APIView):
 
         jobs = (
             DeliveryJob.objects
-            .select_related("repository")
-            .order_by("-created_at")[:100]
+            .select_related(
+                "repository",
+                "created_by",
+            )
+            .order_by("-created_at")
         )
+
+        # ------------------------------------------------------
+        # USER ONLY SEES OWN JOBS
+        # ------------------------------------------------------
+
+        if is_user(request.user):
+
+            jobs = jobs.filter(
+                created_by=request.user
+            )
+
+        jobs = jobs[:100]
 
         return Response(
             JobSerializer(
@@ -1165,10 +1331,6 @@ class JobListView(APIView):
     # ------------------------------------------------------
 
     def post(self, request):
-
-        # ==================================================
-        # REPOSITORY
-        # ==================================================
 
         repository_id = request.data.get(
             "repository_id"
@@ -1192,9 +1354,25 @@ class JobListView(APIView):
             active=True,
         )
 
-        # ==================================================
-        # DRY RUN
-        # ==================================================
+        # ------------------------------------------------------
+        # USER CAN ONLY RUN OWN REPOSITORY
+        # ------------------------------------------------------
+
+        if not can_run_delivery(
+            request.user,
+            repository,
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "You do not have permission "
+                        "to run delivery for this repository."
+                    )
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         dry = self.parse_boolean(
             request.data.get(
@@ -1202,10 +1380,6 @@ class JobListView(APIView):
                 False,
             )
         )
-
-        # ==================================================
-        # TARGETS
-        # ==================================================
 
         request_targets = request.data.get(
             "targets",
@@ -1237,10 +1411,6 @@ class JobListView(APIView):
                 repository.targets or []
             )
 
-        # ==================================================
-        # BACKWARD COMPATIBILITY
-        # ==================================================
-
         if not targets:
 
             legacy_target = (
@@ -1259,10 +1429,6 @@ class JobListView(APIView):
                         ),
                     }
                 ]
-
-        # ==================================================
-        # TARGET VALIDATION
-        # ==================================================
 
         if not targets:
 
@@ -1423,10 +1589,6 @@ class JobListView(APIView):
                 }
             )
 
-        # ==================================================
-        # RECIPIENTS
-        # ==================================================
-
         requested_recipients = (
             request.data.get(
                 "recipients"
@@ -1463,10 +1625,6 @@ class JobListView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ==================================================
-        # SUBJECT
-        # ==================================================
-
         subject = request.data.get(
             "subject"
         )
@@ -1477,12 +1635,6 @@ class JobListView(APIView):
                 f"Application Files Delivered — "
                 f"{repository.name}"
             )
-
-        # ==================================================
-        # EMAIL BODY
-        # ==================================================
-
-   
 
         email_body = request.data.get(
             "message"
@@ -1530,10 +1682,6 @@ class JobListView(APIView):
                 f"Automated Delivery System"
             )
 
-        # ==================================================
-        # EMAIL MODE
-        # ==================================================
-
         email_mode = (
             str(
                 repository.email_mode
@@ -1543,10 +1691,6 @@ class JobListView(APIView):
             .upper()
         )
 
-        # ==================================================
-        # JOB REFERENCE
-        # ==================================================
-
         job_reference = (
             f"JOB-"
             f"{timezone.now():%Y%m%d-%H%M%S}-"
@@ -1554,7 +1698,7 @@ class JobListView(APIView):
         )
 
         # ==================================================
-        # CREATE JOB
+        # CREATE JOB WITH CURRENT USER
         # ==================================================
 
         job = DeliveryJob.objects.create(
@@ -1562,6 +1706,8 @@ class JobListView(APIView):
             job_reference=job_reference,
 
             repository=repository,
+
+            created_by=request.user,
 
             status=(
                 DeliveryJob.Status.RUNNING
@@ -1575,10 +1721,6 @@ class JobListView(APIView):
         )
 
         try:
-
-            # ==================================================
-            # TEMPORARY TARGET SELECTION
-            # ==================================================
 
             original_targets = (
                 repository.targets
@@ -1608,10 +1750,6 @@ class JobListView(APIView):
                 "files",
                 [],
             )
-
-            # ==================================================
-            # SAVE JOB INFORMATION
-            # ==================================================
 
             job.files_count = len(
                 files
@@ -1644,10 +1782,6 @@ class JobListView(APIView):
                     "",
                 )
             )
-
-            # ==================================================
-            # DRY RUN
-            # ==================================================
 
             if dry:
 
@@ -1690,10 +1824,6 @@ class JobListView(APIView):
                     ),
                 )
 
-            # ==================================================
-            # REAL EMAIL DELIVERY
-            # ==================================================
-
             if email_mode != "SMTP":
 
                 raise EmailDeliveryError(
@@ -1703,10 +1833,6 @@ class JobListView(APIView):
                     "Set email_mode to 'SMTP' before "
                     "running a real delivery."
                 )
-
-            # ==================================================
-            # ARCHIVE
-            # ==================================================
 
             archive_path = result.get(
                 "archive_path"
@@ -1744,10 +1870,6 @@ class JobListView(APIView):
                     f"{archive_path}"
                 )
 
-            # ==================================================
-            # SEND EMAIL
-            # ==================================================
-
             email_service = (
                 EmailService()
             )
@@ -1765,10 +1887,6 @@ class JobListView(APIView):
                     ),
                 )
             )
-
-            # ==================================================
-            # SUCCESS
-            # ==================================================
 
             job.status = (
                 DeliveryJob.Status.SUCCESS
@@ -1934,7 +2052,17 @@ class JobListView(APIView):
 class JobDetailView(APIView):
     """
     Retrieve a single delivery job.
+
+    ADMIN:
+        Any job.
+
+    MANAGER:
+        Any job.
+
+    USER:
+        Own jobs only.
     """
+
     permission_classes = [
         IsAuthenticated
     ]
@@ -1943,10 +2071,32 @@ class JobDetailView(APIView):
 
         job = get_object_or_404(
             DeliveryJob.objects.select_related(
-                "repository"
+                "repository",
+                "created_by",
             ),
             pk=pk,
         )
+
+        # ------------------------------------------------------
+        # USER DATA ISOLATION
+        # ------------------------------------------------------
+
+        if (
+            is_user(request.user)
+            and job.created_by_id
+            != request.user.id
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "You do not have permission "
+                        "to view this delivery job."
+                    )
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         response_data = (
             JobSerializer(
@@ -1971,6 +2121,7 @@ class HealthView(APIView):
     """
     API health check.
     """
+
     permission_classes = [
         AllowAny
     ]

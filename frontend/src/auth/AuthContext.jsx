@@ -2,40 +2,67 @@ import React, {
   createContext,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
 
-const API = "http://127.0.0.1:8000/api";
 
-const AuthContext = createContext(null);
+// ============================================================
+// AUTH CONTEXT
+// ============================================================
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+const AuthContext =
+  createContext(null);
 
-  const [accessToken, setAccessToken] = useState(
+
+// ============================================================
+// API BASE URL
+// ============================================================
+
+const API_BASE_URL =
+  "http://127.0.0.1:8000/api";
+
+
+// ============================================================
+// AUTH PROVIDER
+// ============================================================
+
+export function AuthProvider({
+  children,
+}) {
+
+  const [
+    accessToken,
+    setAccessToken,
+  ] = useState(
     () =>
       localStorage.getItem(
         "access_token"
-      ) || ""
+      )
   );
 
-  const [loading, setLoading] = useState(
-    true
+
+  const [
+    refreshToken,
+    setRefreshToken,
+  ] = useState(
+    () =>
+      localStorage.getItem(
+        "refresh_token"
+      )
   );
 
-  // ==========================================================
-  // REFRESH LOCK
-  // ==========================================================
-  //
-  // Only ONE refresh request may run at a time.
-  //
-  // This is important because JWT refresh-token rotation is
-  // enabled on the backend. Multiple simultaneous refresh
-  // requests can otherwise race with one another.
-  //
 
-  const refreshPromiseRef = useRef(null);
+  const [
+    user,
+    setUser,
+  ] = useState(null);
+
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
 
   // ==========================================================
   // SAVE TOKENS
@@ -45,31 +72,43 @@ export function AuthProvider({ children }) {
     access,
     refresh
   ) => {
+
     if (access) {
+
       localStorage.setItem(
         "access_token",
         access
       );
 
-      setAccessToken(access);
+      setAccessToken(
+        access
+      );
+
     }
 
-    // IMPORTANT:
-    // When refresh-token rotation is enabled, the backend may
-    // return a NEW refresh token. Always replace the old one.
+
     if (refresh) {
+
       localStorage.setItem(
         "refresh_token",
         refresh
       );
+
+      setRefreshToken(
+        refresh
+      );
+
     }
+
   };
+
 
   // ==========================================================
   // CLEAR AUTH
   // ==========================================================
 
   const clearAuth = () => {
+
     localStorage.removeItem(
       "access_token"
     );
@@ -78,221 +117,305 @@ export function AuthProvider({ children }) {
       "refresh_token"
     );
 
-    setAccessToken("");
+    setAccessToken(null);
+
+    setRefreshToken(null);
+
     setUser(null);
+
   };
+
 
   // ==========================================================
   // LOGIN
   // ==========================================================
 
   const login = async (
-    username,
+    identifier,
     password
   ) => {
-    const response = await fetch(
-      `${API}/auth/login/`,
-      {
-        method: "POST",
 
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
+    const response =
+      await fetch(
+        `${API_BASE_URL}/auth/login/`,
+        {
+          method: "POST",
 
-        body: JSON.stringify({
-          username,
-          password,
-        }),
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body:
+            JSON.stringify({
+              username:
+                identifier,
+
+              password:
+                password,
+            }),
+        }
+      );
+
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => ({})
+        );
+
+
+    if (
+      !response.ok
+    ) {
+
+      let message =
+        "Unable to login.";
+
+
+      if (
+        data?.detail
+      ) {
+
+        message =
+          data.detail;
+
+      } else if (
+        data?.non_field_errors?.[0]
+      ) {
+
+        message =
+          data.non_field_errors[0];
+
+      } else if (
+        data?.username?.[0]
+      ) {
+
+        message =
+          data.username[0];
+
+      } else if (
+        data?.password?.[0]
+      ) {
+
+        message =
+          data.password[0];
+
       }
-    );
 
-    const result =
-      await response.json();
 
-    if (!response.ok) {
       throw new Error(
-        result.detail ||
-          result.message ||
-          result.non_field_errors?.[0] ||
-          result.username?.[0] ||
-          "Invalid username or password."
+        message
       );
+
     }
 
-    if (!result.access) {
-      throw new Error(
-        "Login succeeded but access token was not returned."
-      );
-    }
-
-    if (!result.refresh) {
-      throw new Error(
-        "Login succeeded but refresh token was not returned."
-      );
-    }
 
     saveTokens(
-      result.access,
-      result.refresh
+      data.access,
+      data.refresh
     );
 
-    // Keep the user returned by login when
-    // available. This avoids an unnecessary
-    // immediate /me request in the UI.
-    if (result.user) {
-      setUser(result.user);
-    }
 
-    return result;
-  };
+    if (
+      data.user
+    ) {
 
-  // ==========================================================
-  // GET CURRENT USER
-  // ==========================================================
-
-  const fetchCurrentUser = async (
-    token = accessToken
-  ) => {
-    if (!token) {
-      return null;
-    }
-
-    const response = await fetch(
-      `${API}/auth/me/`,
-      {
-        method: "GET",
-
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        "Authentication token is invalid."
+      setUser(
+        data.user
       );
+
+    } else {
+
+      // Some login APIs return
+      // tokens without user data.
+      // Fetch /me/ in that case.
+
+      if (
+        data.access
+      ) {
+
+        await fetchCurrentUser(
+          data.access
+        );
+
+      }
+
     }
 
-    const result =
-      await response.json();
 
-    const currentUser =
-      result.user || result;
+    return data;
 
-    setUser(currentUser);
-
-    return currentUser;
   };
+
+
+  // ==========================================================
+  // FETCH CURRENT USER
+  // ==========================================================
+
+  const fetchCurrentUser =
+    async (
+      token = accessToken
+    ) => {
+
+      if (!token) {
+
+        setUser(null);
+
+        return null;
+
+      }
+
+
+      const response =
+        await fetch(
+          `${API_BASE_URL}/auth/me/`,
+          {
+            method: "GET",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      const data =
+        await response
+          .json()
+          .catch(
+            () => ({})
+          );
+
+
+      if (
+        !response.ok
+      ) {
+
+        throw new Error(
+          data?.detail ||
+          "Unable to fetch current user."
+        );
+
+      }
+
+
+      const currentUser =
+        data?.user ||
+        data;
+
+
+      setUser(
+        currentUser
+      );
+
+
+      return currentUser;
+
+    };
+
 
   // ==========================================================
   // REFRESH ACCESS TOKEN
   // ==========================================================
 
-  const refreshAccessToken = async () => {
-    // If another request is already refreshing,
-    // wait for that exact refresh operation.
-    if (refreshPromiseRef.current) {
-      return refreshPromiseRef.current;
-    }
+  const refreshAccessToken =
+    async () => {
 
-    const refreshToken =
-      localStorage.getItem(
-        "refresh_token"
-      );
+      const storedRefresh =
+        refreshToken ||
+        localStorage.getItem(
+          "refresh_token"
+        );
 
-    if (!refreshToken) {
-      clearAuth();
-      return null;
-    }
 
-    const refreshPromise =
-      (async () => {
-        try {
-          const response =
-            await fetch(
-              `${API}/auth/refresh/`,
-              {
-                method: "POST",
+      if (!storedRefresh) {
 
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
+        return null;
 
-                body: JSON.stringify({
-                  refresh:
-                    refreshToken,
-                }),
-              }
-            );
+      }
 
-          if (!response.ok) {
-            clearAuth();
-            return null;
+
+      const response =
+        await fetch(
+          `${API_BASE_URL}/auth/refresh/`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                refresh:
+                  storedRefresh,
+              }),
           }
+        );
 
-          const result =
-            await response.json();
 
-          if (!result.access) {
-            clearAuth();
-            return null;
-          }
-
-          // Because the backend uses:
-          //
-          // ROTATE_REFRESH_TOKENS = True
-          //
-          // and:
-          //
-          // BLACKLIST_AFTER_ROTATION = True
-          //
-          // we MUST save the newly returned
-          // refresh token whenever one is supplied.
-          saveTokens(
-            result.access,
-            result.refresh
+      const data =
+        await response
+          .json()
+          .catch(
+            () => ({})
           );
 
-          return result.access;
-        } catch {
-          clearAuth();
-          return null;
-        } finally {
-          refreshPromiseRef.current = null;
-        }
-      })();
 
-    refreshPromiseRef.current =
-      refreshPromise;
+      if (
+        !response.ok
+      ) {
 
-    return refreshPromise;
-  };
+        console.warn(
+          "Refresh token failed:",
+          data
+        );
+
+        clearAuth();
+
+        return null;
+
+      }
+
+
+      saveTokens(
+        data.access,
+        data.refresh ||
+          storedRefresh
+      );
+
+
+      return data.access;
+
+    };
+
 
   // ==========================================================
   // LOGOUT
   // ==========================================================
 
   const logout = async () => {
-    const refreshToken =
+
+    const storedRefresh =
+      refreshToken ||
       localStorage.getItem(
         "refresh_token"
       );
 
-    const token =
-      localStorage.getItem(
-        "access_token"
-      );
 
     try {
+
       if (
-        refreshToken &&
-        token
+        accessToken &&
+        storedRefresh
       ) {
+
         await fetch(
-          `${API}/auth/logout/`,
+          `${API_BASE_URL}/auth/logout/`,
           {
             method: "POST",
 
@@ -301,166 +424,216 @@ export function AuthProvider({ children }) {
                 "application/json",
 
               Authorization:
-                `Bearer ${token}`,
+                `Bearer ${accessToken}`,
             },
 
-            body: JSON.stringify({
-              refresh:
-                refreshToken,
-            }),
+            body:
+              JSON.stringify({
+                refresh:
+                  storedRefresh,
+              }),
           }
         );
+
       }
-    } catch {
-      // Frontend cleanup must still happen
-      // if the backend is unreachable.
+
+    } catch (error) {
+
+      console.error(
+        "Logout request failed:",
+        error
+      );
+
     } finally {
+
       clearAuth();
+
     }
+
   };
+
 
   // ==========================================================
   // INITIAL AUTH CHECK
   // ==========================================================
 
   useEffect(() => {
+
+    let mounted = true;
+
+
     const initializeAuth =
       async () => {
-        const storedToken =
+
+        const storedAccess =
           localStorage.getItem(
             "access_token"
           );
 
-        if (!storedToken) {
-          setLoading(false);
+        const storedRefresh =
+          localStorage.getItem(
+            "refresh_token"
+          );
+
+
+        // No stored session
+
+        if (
+          !storedAccess
+        ) {
+
+          if (mounted) {
+
+            setLoading(false);
+
+          }
+
           return;
+
         }
+
+
+        // ------------------------------------------------------
+        // Try existing access token
+        // ------------------------------------------------------
 
         try {
-          await fetchCurrentUser(
-            storedToken
-          );
-        } catch {
-          const newToken =
-            await refreshAccessToken();
 
-          if (newToken) {
+          await fetchCurrentUser(
+            storedAccess
+          );
+
+        } catch (error) {
+
+          console.warn(
+            "Access token failed. Trying refresh..."
+          );
+
+
+          // ----------------------------------------------------
+          // Try refresh token
+          // ----------------------------------------------------
+
+          if (
+            storedRefresh
+          ) {
+
             try {
-              await fetchCurrentUser(
-                newToken
+
+              const newAccess =
+                await refreshAccessToken();
+
+
+              if (
+                newAccess
+              ) {
+
+                await fetchCurrentUser(
+                  newAccess
+                );
+
+              } else {
+
+                clearAuth();
+
+              }
+
+            } catch (
+              refreshError
+            ) {
+
+              console.error(
+                "Unable to restore user after refresh:",
+                refreshError
               );
-            } catch {
+
               clearAuth();
+
             }
+
+          } else {
+
+            clearAuth();
+
           }
+
         } finally {
-          setLoading(false);
+
+          if (mounted) {
+
+            setLoading(false);
+
+          }
+
         }
+
       };
 
+
     initializeAuth();
-  }, []);
 
-  // ==========================================================
-  // AUTHENTICATED FETCH
-  // ==========================================================
 
-  const authFetch = async (
-    url,
-    options = {}
-  ) => {
-    let token =
-      localStorage.getItem(
-        "access_token"
-      );
+    return () => {
 
-    const initialHeaders = {
-      ...(options.headers || {}),
+      mounted = false;
+
     };
 
-    if (token) {
-      initialHeaders.Authorization =
-        `Bearer ${token}`;
-    }
+    // We intentionally initialize once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
-    let response =
-      await fetch(
-        url,
-        {
-          ...options,
-          headers: initialHeaders,
-        }
-      );
+  }, []);
 
-    // Retry a request only once after a
-    // 401 response.
-    if (
-      response.status === 401
-    ) {
-      token =
-        await refreshAccessToken();
-
-      if (!token) {
-        clearAuth();
-
-        throw new Error(
-          "Your session has expired. Please login again."
-        );
-      }
-
-      response =
-        await fetch(
-          url,
-          {
-            ...options,
-
-            headers: {
-              ...(options.headers || {}),
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
-        );
-    }
-
-    return response;
-  };
 
   // ==========================================================
   // CONTEXT VALUE
   // ==========================================================
 
   const value = {
+
     user,
 
     accessToken,
+
+    refreshToken,
 
     loading,
 
     isAuthenticated:
       Boolean(
-        user &&
-        accessToken
+        accessToken &&
+        user
       ),
 
     login,
 
     logout,
 
-    refreshAccessToken,
-
     fetchCurrentUser,
 
-    authFetch,
+    refreshAccessToken,
+
+    clearAuth,
+
   };
 
+
+  // ==========================================================
+  // PROVIDER
+  // ==========================================================
+
   return (
+
     <AuthContext.Provider
       value={value}
     >
+
       {children}
+
     </AuthContext.Provider>
+
   );
+
 }
 
 
@@ -469,14 +642,22 @@ export function AuthProvider({ children }) {
 // ============================================================
 
 export function useAuth() {
+
   const context =
-    useContext(AuthContext);
+    useContext(
+      AuthContext
+    );
+
 
   if (!context) {
+
     throw new Error(
       "useAuth must be used inside AuthProvider."
     );
+
   }
 
+
   return context;
+
 }

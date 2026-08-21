@@ -5,9 +5,17 @@ from django.contrib.auth import authenticate
 from .models import User
 
 
+# ============================================================
+# LOGIN
+# ============================================================
+
 class LoginSerializer(serializers.Serializer):
 
-    username = serializers.CharField()
+    username = serializers.CharField(
+        help_text=(
+            "Username or email address."
+        )
+    )
 
     password = serializers.CharField(
         write_only=True
@@ -15,7 +23,7 @@ class LoginSerializer(serializers.Serializer):
 
     def validate(self, attrs):
 
-        username = attrs.get(
+        identifier = attrs.get(
             "username"
         )
 
@@ -23,27 +31,75 @@ class LoginSerializer(serializers.Serializer):
             "password"
         )
 
-        user = authenticate(
-            username=username,
-            password=password,
-        )
+        identifier = identifier.strip()
 
-        if not user:
+        if not identifier:
 
             raise serializers.ValidationError(
-                "Invalid username or password."
+                "Username or email is required."
             )
 
-        if not user.is_active:
+        if not password:
+
+            raise serializers.ValidationError(
+                "Password is required."
+            )
+
+        # ------------------------------------------------------
+        # FIND USER BY USERNAME OR EMAIL
+        # ------------------------------------------------------
+
+        user = None
+
+        user = User.objects.filter(
+            username__iexact=identifier
+        ).first()
+
+        if user is None:
+
+            user = User.objects.filter(
+                email__iexact=identifier
+            ).first()
+
+        # ------------------------------------------------------
+        # AUTHENTICATE PASSWORD
+        # ------------------------------------------------------
+
+        if user is not None:
+
+            authenticated_user = authenticate(
+                username=user.username,
+                password=password,
+            )
+
+        else:
+
+            authenticated_user = None
+
+        if not authenticated_user:
+
+            raise serializers.ValidationError(
+                "Invalid username/email or password."
+            )
+
+        # ------------------------------------------------------
+        # CHECK ACCOUNT STATUS
+        # ------------------------------------------------------
+
+        if not authenticated_user.is_active:
 
             raise serializers.ValidationError(
                 "This account is inactive."
             )
 
-        attrs["user"] = user
+        attrs["user"] = authenticated_user
 
         return attrs
 
+
+# ============================================================
+# USER
+# ============================================================
 
 class UserSerializer(serializers.ModelSerializer):
 
@@ -69,6 +125,10 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
+
+# ============================================================
+# PUBLIC SIGNUP
+# ============================================================
 
 class SignupSerializer(serializers.ModelSerializer):
 
@@ -170,6 +230,51 @@ class SignupSerializer(serializers.ModelSerializer):
 
 
 # ============================================================
+# PASSWORD RESET
+# ============================================================
+
+class PasswordResetSerializer(serializers.Serializer):
+    """
+    Validates the new password used by the password-reset
+    endpoint.
+
+    The uid/token validation remains in ResetPasswordView
+    because those values are URL parameters.
+    """
+
+    password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+    )
+
+    password_confirm = serializers.CharField(
+        write_only=True,
+    )
+
+    def validate(self, attrs):
+
+        password = attrs.get(
+            "password"
+        )
+
+        password_confirm = attrs.get(
+            "password_confirm"
+        )
+
+        if password != password_confirm:
+
+            raise serializers.ValidationError(
+                {
+                    "password": (
+                        "Passwords do not match."
+                    )
+                }
+            )
+
+        return attrs
+
+
+# ============================================================
 # ADMIN USER MANAGEMENT
 # ============================================================
 
@@ -177,10 +282,9 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
     """
     Serializer used by administrators to create application users.
 
-    Unlike public signup, an administrator may assign the
-    USER or MANAGER role. ADMIN creation is deliberately blocked
-    through this API so the highest-privilege role is not casually
-    created from the user-management screen.
+    Administrators may assign the USER, MANAGER or ADMIN role.
+
+    Public signup remains separate and always creates a USER.
     """
 
     password = serializers.CharField(
@@ -243,21 +347,25 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
     def validate_role(self, value):
 
         allowed_roles = {
-            User.Role.USER,
+            User.Role.ADMIN,
             User.Role.MANAGER,
+            User.Role.USER,
         }
 
         if value not in allowed_roles:
 
             raise serializers.ValidationError(
-                "Only USER or MANAGER roles can be assigned here."
+                "Only ADMIN, MANAGER or USER "
+                "roles can be assigned here."
             )
 
         return value
 
     def validate(self, attrs):
 
-        if attrs.get("password") != attrs.get(
+        if attrs.get(
+            "password"
+        ) != attrs.get(
             "password_confirm"
         ):
 
@@ -286,6 +394,10 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
             **validated_data,
         )
 
+
+# ============================================================
+# ADMIN USER UPDATE
+# ============================================================
 
 class AdminUserUpdateSerializer(serializers.ModelSerializer):
     """
@@ -354,14 +466,16 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
     def validate_role(self, value):
 
         allowed_roles = {
-            User.Role.USER,
+            User.Role.ADMIN,
             User.Role.MANAGER,
+            User.Role.USER,
         }
 
         if value not in allowed_roles:
 
             raise serializers.ValidationError(
-                "Only USER or MANAGER roles can be assigned here."
+                "Only ADMIN, MANAGER or USER "
+                "roles can be assigned here."
             )
 
         return value
