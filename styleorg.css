@@ -1,35 +1,141 @@
 /* ============================================================
    LOG DELIVERY MANAGEMENT
-   Clean UI stylesheet
+   COMPLETE APPLICATION STYLES
+   ------------------------------------------------------------
+   Design-only stylesheet.
+   No React / API / authentication / RBAC functionality changed.
    ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap");
 
 /* ============================================================
-   GLOBAL
+   DESIGN TOKENS
    ============================================================ */
 
-* {
+:root {
+  --app-bg: #f7f6fb;
+  --app-bg-soft: #faf9fd;
+
+  --sidebar-bg: #33245c;
+  --sidebar-bg-dark: #2b1d50;
+  --sidebar-active: #493875;
+  --sidebar-text: #d8cee8;
+  --sidebar-muted: #afa3c4;
+
+  --purple: #7557b8;
+  --purple-dark: #62439e;
+  --purple-soft: #eee7f8;
+  --purple-border: #ded5eb;
+
+  --text: #27213a;
+  --text-soft: #675d76;
+  --text-muted: #81758e;
+
+  --border: #e4deeb;
+  --border-soft: #eeeaf3;
+
+  --white: #ffffff;
+
+  --green: #32866a;
+  --green-bg: #eaf6f1;
+  --green-border: #ccebdc;
+
+  --yellow: #a87820;
+  --yellow-bg: #fff7e6;
+  --yellow-border: #f1dfb8;
+
+  --red: #b24d7c;
+  --red-bg: #fff2f7;
+  --red-border: #ebcedf;
+
+  --shadow-sm:
+    0 4px 18px rgba(51, 36, 92, 0.045);
+
+  --shadow-md:
+    0 8px 24px rgba(51, 36, 92, 0.075);
+
+  --shadow-lg:
+    0 18px 45px rgba(51, 36, 92, 0.11);
+
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 14px;
+
+  --app-font-family:
+    Inter,
+    "Noto Sans Telugu",
+    "Noto Sans Devanagari",
+    "Noto Sans",
+    system-ui,
+    sans-serif;
+}
+
+html[data-theme="dark"] {
+  --app-bg: #171321;
+  --app-bg-soft: #211b30;
+  --text: #f4effb;
+  --text-soft: #c7bbd8;
+  --text-muted: #a99bbd;
+  --border: #493d5d;
+  --border-soft: #3a304d;
+  --white: #241d31;
+  --purple-soft: #3b2e57;
+  --purple-border: #66548c;
+  --green-bg: #1d3b32;
+  --green-border: #376d5d;
+  --yellow-bg: #44361d;
+  --yellow-border: #81652e;
+  --red-bg: #482337;
+  --red-border: #854866;
+}
+
+/* ============================================================
+   RESET / GLOBAL
+   ============================================================ */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html,
 body,
 #root {
+  width: 100%;
+  min-width: 0;
   min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--app-bg);
 }
 
 body {
-  margin: 0;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  min-height: 100vh;
 
-  background: #eef2f8;
-  color: #172033;
+  background:
+    radial-gradient(
+      circle at 88% 3%,
+      rgba(117, 87, 184, 0.055),
+      transparent 25%
+    ),
+    linear-gradient(
+      135deg,
+      #f6f4fa 0%,
+      #fbfafd 100%
+    );
+
+  color: var(--text);
+
+  font-family: var(--app-font-family);
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
+  overflow-x: hidden;
 }
 
 button,
@@ -40,17 +146,12 @@ textarea {
 }
 
 button {
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    opacity 0.15s ease,
-    transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.58;
 }
 
 input,
@@ -64,9 +165,108 @@ textarea {
    ============================================================ */
 
 .app {
-  display: flex;
-  min-height: 100vh;
   width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+
+  background: transparent;
+
+  font-family: var(--app-font-family);
+}
+
+.app > aside {
+  width: 246px;
+  min-width: 246px;
+  max-width: 246px;
+
+  min-height: 100vh;
+
+  flex: 0 0 246px;
+
+  position: relative;
+  z-index: 20;
+}
+
+.app > main {
+  width: calc(100% - 246px);
+  min-width: 0;
+
+  min-height: 100vh;
+
+  flex: 1 1 auto;
+
+  display: block;
+
+  padding: 32px 38px;
+
+  background: transparent;
+
+  overflow-x: hidden;
+}
+
+.app > main > * {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ============================================================
+   FONT SELECTION
+   ============================================================ */
+
+.app[data-font="inter"] {
+  --app-font-family:
+    Inter,
+    "Noto Sans Telugu",
+    "Noto Sans Devanagari",
+    "Noto Sans",
+    system-ui,
+    sans-serif;
+}
+
+.app[data-font="noto-sans"] {
+  --app-font-family:
+    "Noto Sans",
+    "Noto Sans Telugu",
+    "Noto Sans Devanagari",
+    system-ui,
+    sans-serif;
+}
+
+.app[data-font="poppins"] {
+  --app-font-family:
+    Poppins,
+    "Noto Sans Telugu",
+    "Noto Sans Devanagari",
+    "Noto Sans",
+    system-ui,
+    sans-serif;
+}
+
+.app[data-font="inter"],
+.app[data-font="noto-sans"],
+.app[data-font="poppins"] {
+  font-family: var(--app-font-family);
+}
+
+.app[data-language="te"] {
+  font-family:
+    var(--app-font-family),
+    "Noto Sans Telugu",
+    "Nirmala UI",
+    "Gautami",
+    sans-serif;
+}
+
+.app[data-language="hi"] {
+  font-family:
+    var(--app-font-family),
+    "Noto Sans Devanagari",
+    "Nirmala UI",
+    Mangal,
+    sans-serif;
 }
 
 /* ============================================================
@@ -74,18 +274,26 @@ textarea {
    ============================================================ */
 
 aside {
-  width: 246px;
-  min-height: 100vh;
-  flex-shrink: 0;
-
   display: flex;
   flex-direction: column;
 
   padding: 22px 14px;
 
-  background: #172b5b;
-  color: #d8e3f1;
+  background:
+    linear-gradient(
+      180deg,
+      var(--sidebar-bg) 0%,
+      var(--sidebar-bg-dark) 100%
+    );
+
+  color: var(--sidebar-text);
+
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
 }
+
+/* ============================================================
+   LOGO
+   ============================================================ */
 
 .logo {
   display: flex;
@@ -99,23 +307,32 @@ aside {
   width: 36px;
   height: 36px;
 
+  flex: 0 0 36px;
+
   display: grid;
   place-items: center;
 
   border-radius: 9px;
 
-  background: #2f5da8;
-  color: #fff;
+  background: var(--purple);
+
+  color: #ffffff;
 
   font-size: 11px;
   font-weight: 800;
+
+  box-shadow:
+    0 6px 16px rgba(117, 87, 184, 0.28);
 }
 
 .logo b {
   display: block;
 
-  color: #fff;
+  color: #ffffff;
+
   font-size: 14px;
+  font-weight: 800;
+
   line-height: 1.2;
 }
 
@@ -124,12 +341,15 @@ aside {
 
   margin-top: 3px;
 
-  color: #9aaccb;
+  color: #b8accb;
+
   font-size: 11px;
+
+  line-height: 1.2;
 }
 
 /* ============================================================
-   NAVIGATION
+   SIDEBAR NAVIGATION
    ============================================================ */
 
 nav {
@@ -140,78 +360,149 @@ nav {
 nav button {
   width: 100%;
 
+  min-height: 40px;
+
   display: flex;
   align-items: center;
+
   gap: 12px;
 
   padding: 11px 12px;
 
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 9px;
 
   background: transparent;
-  color: #b7c5dd;
+
+  color: var(--sidebar-text);
+
+  font-size: 13px;
+  font-weight: 600;
 
   text-align: left;
 
   cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
 }
 
-nav button:hover,
+nav button svg {
+  flex: 0 0 auto;
+}
+
+nav button:hover {
+  background: rgba(255, 255, 255, 0.055);
+  color: #ffffff;
+}
+
 nav button.active {
-  background: #243e73;
-  color: #fff;
+  background: var(--sidebar-active);
+
+  border-color:
+    rgba(255, 255, 255, 0.08);
+
+  color: #ffffff;
+
+  box-shadow:
+    inset 3px 0 0 #a98ad8;
 }
 
 /* ============================================================
-   SIDEBAR BOTTOM
+   SIDEBAR ACCOUNT AREA
+   ============================================================ */
+
+aside > div:not(.logo):not(.sideBottom) {
+  margin-top: 8px !important;
+
+  padding-top: 8px !important;
+
+  border-top:
+    1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+aside > div:not(.logo):not(.sideBottom) > button {
+  width: 100% !important;
+
+  min-height: 40px !important;
+
+  display: flex !important;
+  align-items: center !important;
+
+  gap: 12px !important;
+
+  padding: 11px 12px !important;
+
+  border: 0 !important;
+  border-radius: 9px !important;
+
+  background: transparent !important;
+
+  color: #cfc5dc !important;
+
+  font-size: 13px !important;
+  font-weight: 600 !important;
+
+  text-align: left !important;
+
+  cursor: pointer;
+}
+
+aside > div:not(.logo):not(.sideBottom) > button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+}
+
+/* ============================================================
+   SIDEBAR SECURITY CARD
    ============================================================ */
 
 .sideBottom {
   margin-top: auto;
 
   display: flex;
+  align-items: flex-start;
+
   gap: 9px;
 
   padding: 12px;
 
-  border: 1px solid #304879;
+  border:
+    1px solid rgba(183, 162, 218, 0.24);
+
   border-radius: 10px;
 
-  background: #1d315d;
-  color: #8fb4f2;
+  background:
+    rgba(255, 255, 255, 0.055);
+
+  color: #c6b8db;
 }
 
-.sideBottom b,
-.sideBottom span {
-  display: block;
-  font-size: 11px;
+.sideBottom svg {
+  flex: 0 0 auto;
 }
 
 .sideBottom b {
-  color: #e3edff;
+  display: block;
+
+  color: #f0ebf7;
+
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .sideBottom span {
-  margin-top: 2px;
-  color: #9aabc6;
-}
+  display: block;
 
-/* ============================================================
-   MAIN CONTENT
-   ============================================================ */
+  margin-top: 3px;
 
-main {
-  flex: 1;
-  width: 100%;
-  min-width: 0;
+  color: #b3a6c5;
 
-  margin: 0;
-  padding: 32px 38px;
-}
-
-main > * {
-  width: 100%;
+  font-size: 10px;
+  line-height: 1.3;
 }
 
 /* ============================================================
@@ -220,30 +511,42 @@ main > * {
 
 header {
   display: flex;
-  justify-content: space-between;
+
   align-items: flex-end;
+  justify-content: space-between;
+
   gap: 20px;
 
   margin-bottom: 22px;
 }
 
+header > div:first-child {
+  min-width: 0;
+}
+
 .eyebrow {
-  color: #687b9b;
+  color: #7a6d8b;
 
   font-size: 10px;
   font-weight: 800;
 
+  line-height: 1.2;
+
   letter-spacing: 0.13em;
+
   text-transform: uppercase;
 }
 
 h1 {
   margin: 5px 0 4px;
 
-  color: #172033;
+  color: #27213a;
 
-  font-size: clamp(26px, 2vw, 32px);
+  font-size: clamp(27px, 2vw, 33px);
+
   line-height: 1.12;
+
+  font-weight: 800;
 
   letter-spacing: -0.03em;
 }
@@ -251,23 +554,25 @@ h1 {
 header p {
   margin: 0;
 
-  color: #687b9b;
-  font-size: 13px;
+  color: #7b7188;
+
+  font-size: 12px;
+
+  line-height: 1.55;
 }
 
 /* ============================================================
-   ACTIONS
+   HEADER ACTIONS
    ============================================================ */
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
 
-/* ============================================================
-   BUTTONS
-   ============================================================ */
+  gap: 8px;
+
+  flex-shrink: 0;
+}
 
 .actions button,
 .primary,
@@ -278,55 +583,147 @@ header p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   gap: 7px;
 
   padding: 9px 13px;
 
-  border: 1px solid #d6dfed;
+  border: 1px solid #ded7e8;
+
   border-radius: 9px;
 
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.actions button:hover:not(:disabled),
+.primary:hover:not(:disabled),
+.ghost:hover:not(:disabled),
+.danger:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   LANGUAGE HEADER CONTROL
+   ============================================================ */
+
+.dashboard-language-control {
+  min-height: 36px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 0 10px;
+
+  border:
+    1px solid #ded7e8;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #4f4560;
+}
+
+.dashboard-language-control svg {
+  flex: 0 0 auto;
+
+  color: var(--purple);
+}
+
+.dashboard-language-control select {
+  min-width: 66px;
+
+  border: 0;
+
+  outline: 0;
+
+  background: transparent;
+
+  color: #4f4560;
+
+  font: inherit;
+
+  font-size: 10px;
   font-weight: 700;
 
   cursor: pointer;
 }
 
+/* ============================================================
+   PRIMARY BUTTON
+   ============================================================ */
+
 .primary {
-  background: #2f5da8;
-  border-color: #2f5da8;
-  color: #fff;
+  background: var(--purple);
+
+  border-color: var(--purple);
+
+  color: #ffffff;
+
+  box-shadow:
+    0 4px 10px rgba(117, 87, 184, 0.18);
 }
 
 .primary:hover:not(:disabled) {
-  background: #254b8c;
-  border-color: #254b8c;
+  background: var(--purple-dark);
+
+  border-color: var(--purple-dark);
 }
 
+/* ============================================================
+   GHOST BUTTON
+   ============================================================ */
+
 .ghost {
-  background: #fff;
-  color: #33415c;
+  background: #ffffff;
+
+  color: #4f4560;
 }
 
 .ghost:hover:not(:disabled) {
-  background: #eef2f8;
-  border-color: #b9c8df;
+  background: #f5f1f8;
+
+  border-color: #d1c5df;
 }
 
+/* ============================================================
+   DANGER BUTTON
+   ============================================================ */
+
 .danger {
-  background: #fff;
-  border-color: #efc9cf;
-  color: #c23b49;
+  background: #ffffff;
+
+  border-color: var(--red-border);
+
+  color: var(--red);
 }
 
 .danger:hover:not(:disabled) {
-  background: #fff5f6;
-  border-color: #e9aeb4;
+  background: var(--red-bg);
+
+  border-color: #e3b7ce;
 }
 
 .small {
   min-height: 32px;
+
   padding: 7px 10px;
-  font-size: 11px;
+
+  font-size: 10px;
 }
 
 .iconButton {
@@ -336,47 +733,672 @@ header p {
   display: grid;
   place-items: center;
 
-  border: 1px solid #d7e0ec;
+  border:
+    1px solid #ded7e8;
+
   border-radius: 8px;
 
-  background: #fff;
-  color: #667a9d;
+  background: #ffffff;
+
+  color: #817293;
 
   cursor: pointer;
 }
 
 .iconButton:hover:not(:disabled) {
-  background: #f2f5fa;
-  color: #172033;
+  background: #f4f0f7;
+
+  color: #33245c;
 }
 
 /* ============================================================
-   DASHBOARD STAT CARDS
+   GENERAL PANELS
    ============================================================ */
 
-.cards {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+.panel {
+  min-width: 0;
+
+  padding: 19px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: var(--radius-lg);
+
+  background: #ffffff;
+
+  box-shadow: var(--shadow-sm);
+}
+
+.panel.full {
+  min-height: 0;
+}
+
+.panelHead {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
 
   margin-bottom: 16px;
 }
 
-.stat,
-.panel {
-  border: 1px solid #dfe6f0;
+.panelHead h2 {
+  margin: 0 0 3px;
+
+  color: var(--text);
+
+  font-size: 15px;
+  font-weight: 800;
+
+  line-height: 1.3;
+
+  letter-spacing: -0.02em;
+}
+
+.panelHead span {
+  display: block;
+
+  color: #81758e;
+
+  font-size: 10px;
+
+  line-height: 1.45;
+}
+
+.settingsPage {
+  padding: 18px 18px 20px;
+}
+
+.settingsHeader {
+  margin-bottom: 20px;
+}
+
+.settingsGroup {
+  margin-bottom: 26px;
+}
+
+.settingsTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.settingsIconBadge {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #f1f0f7;
+  border: 1px solid #e4dff3;
+  color: #5d3d9a;
+  font-size: 17px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fontBadge {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.settingsTitleRow b {
+  display: block;
+  color: #241d38;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+
+.settingsTitleRow span {
+  display: block;
+  color: #6d677b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settingsChoiceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settingsChoiceCard,
+.settingsFontCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 78px;
+  padding: 16px 18px;
+  border: 1px solid #dfd8ed;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1c1830;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.settingsChoiceCard:hover,
+.settingsFontCard:hover {
+  transform: translateY(-1px);
+  border-color: #cabbe8;
+}
+
+.settingsChoiceCard.active,
+.settingsFontCard.active {
+  border: 2px solid #6d4bb3;
+  background: #f8f5ff;
+  box-shadow: 0 0 0 3px rgba(109, 75, 179, 0.08);
+}
+
+.settingsChoiceFlag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.settingsChoiceLabel {
+  display: inline-block;
+  color: #1f1a2d;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.settingsChoiceCheck {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #6d4bb3;
+}
+
+.settingsFontCard {
+  display: block;
+  min-height: 88px;
+}
+
+.settingsFontHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.settingsFontName {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.settingsFontSample {
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  color: #2a233a;
+}
+
+.settingsSummaryPanel {
+  padding: 14px 14px 12px;
+  border: 1px solid #e1d8ee;
+  border-radius: 12px;
+  background: #f9f8fc;
+}
+
+.settingsSummaryHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #2a233a;
+}
+
+.settingsSummaryHeader b {
+  font-size: 14px;
+}
+
+.settingsSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settingsSummaryCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e1d8ee;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #2c2940;
+}
+
+.settingsSummaryCard span {
+  color: #57506a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settingsSummaryCard strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #211d32;
+}
+
+.settingsPage {
+  padding: 18px 18px 14px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.settingsNotice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  border: 1px solid #cfe7d1;
+  border-radius: 12px;
+  background: #ecf9f0;
+  color: #1f6b4d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.settingsNoticeIcon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #dff4e7;
+  color: #1c7e58;
+  font-size: 12px;
+}
+
+.settingsNoticeClose {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #1f6b4d;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settingsGridTwo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.settingsCard {
+  border: 1px solid #e5e0ee;
   border-radius: 14px;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 18px 18px 14px;
+  box-shadow: 0 0 0 1px rgba(109, 75, 179, 0.02);
+}
 
-  background: #fff;
+.settingsCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eeeaf4;
+}
 
-  box-shadow:
-    0 4px 18px rgba(16, 24, 40, 0.045);
+.settingsCardIcon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #f2ecfb;
+  color: #6d4bb3;
+  border: 1px solid #e1d6f4;
+}
+
+.settingsCardHeader h3 {
+  margin: 0;
+  color: #2b2340;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.settingsCardHeader p {
+  margin: 4px 0 0;
+  color: #786f89;
+  font-size: 12px;
+}
+
+.settingsFieldBlock {
+  margin-bottom: 18px;
+}
+
+.settingsFieldBlock label,
+.settingRow label {
+  display: block;
+  margin-bottom: 6px;
+  color: #1f1d2b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.settingsFieldBlock p,
+.settingRow small {
+  margin: 0 0 12px;
+  color: #7b728c;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.themeButtons,
+.fontButtons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.themeButton,
+.fontButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px 12px;
+  border: 1px solid #e3dced;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #201d2b;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.themeButton {
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.themeButton.selected,
+.fontButton.selected {
+  border-color: #6d4bb3;
+  background: #f8f5ff;
+  box-shadow: 0 0 0 3px rgba(109, 75, 179, 0.06);
+}
+
+.fontButton {
+  display: block;
+  min-height: 102px;
+  padding: 12px 12px 10px;
+}
+
+.fontButtonTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.fontButton small {
+  display: block;
+  margin-bottom: 8px;
+  color: #7d7187;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.fontSample {
+  color: #2d2540;
+  font-size: 17px;
+  letter-spacing: 0.01em;
+}
+
+.settingsFieldList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0ebf5;
+}
+
+.settingRow:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.settingRow select,
+.textInput {
+  min-width: 140px;
+  max-width: 180px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #dfe4ee;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #241d38;
+  font-size: 13px;
+}
+
+.toggleRow {
+  align-items: center;
+}
+
+.toggleRow small {
+  display: block;
+  margin-top: 3px;
+  margin-bottom: 0;
+}
+
+.switchButton {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: #dfe5ee;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease;
+}
+
+.switchButton span {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: left 0.2s ease;
+}
+
+.switchButton.on {
+  background: #6d4bb3;
+}
+
+.switchButton.on span {
+  left: 23px;
+}
+
+.compactBlock {
+  margin-top: 16px;
+}
+
+.textInput {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  background: #f6f5fa;
+  color: #5d5873;
+}
+
+.securityRow,
+.settingsInfoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  color: #312c40;
+  font-size: 13px;
+}
+
+.securityRow span,
+.settingsInfoRow span {
+  color: #4a405d;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.statusBadge.active {
+  background: #ecf9f0;
+  color: #1b7f55;
+}
+
+.statusBadge.success {
+  background: #ecf9f0;
+  color: #1b7f55;
+}
+
+.statusBadge.error {
+  background: #fff0f3;
+  color: #ba4a6c;
+}
+
+.dangerLinkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #f0d6df;
+  border-radius: 8px;
+  background: #fff7fa;
+  color: #b1496f;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.settingsSystemInfo {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #eeeaf4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settingsFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #eeeaf4;
+}
+
+.settingsFooterActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.secondaryActionButton,
+.primaryActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondaryActionButton {
+  border: 1px solid #e2d9f0;
+  background: #ffffff;
+  color: #312d3d;
+}
+
+.primaryActionButton {
+  border: 1px solid #6d4bb3;
+  background: #6d4bb3;
+  color: #ffffff;
+}
+
+/* ============================================================
+   GENERIC DASHBOARD STATS
+   ============================================================ */
+
+.cards {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 14px;
+
+  margin-bottom: 16px;
 }
 
 .stat {
   position: relative;
 
   padding: 17px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: var(--radius-lg);
+
+  background: #ffffff;
+
+  box-shadow: var(--shadow-sm);
 }
 
 .statIcon {
@@ -390,15 +1412,17 @@ header p {
 
   border-radius: 8px;
 
-  background: #e8eef8;
-  color: #2f5da8;
+  background: var(--purple-soft);
+
+  color: var(--purple);
 }
 
 .stat span {
   display: block;
 
-  color: #7183a1;
-  font-size: 12px;
+  color: #81758e;
+
+  font-size: 10px;
 }
 
 .stat strong {
@@ -406,29 +1430,34 @@ header p {
 
   margin-top: 5px;
 
+  color: var(--text);
+
   font-size: 27px;
+
   line-height: 1;
+
+  font-weight: 800;
 }
 
-/* ============================================================
-   STATUS COLORS
-   ============================================================ */
-
 .green {
-  color: #1f9d68;
+  color: var(--green);
 }
 
 .red {
-  color: #cf4654;
+  color: var(--red);
 }
 
 /* ============================================================
-   DASHBOARD PANELS
+   GENERIC DASHBOARD GRID
    ============================================================ */
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+
+  grid-template-columns:
+    minmax(0, 1.55fr)
+    minmax(320px, 1fr);
+
   gap: 16px;
 }
 
@@ -436,41 +1465,920 @@ header p {
   min-width: 0;
 }
 
-.panel {
-  min-width: 0;
-  padding: 19px;
-}
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
 
-.full {
-  min-height: 500px;
-}
+.empty {
+  min-height: 180px;
 
-.panelHead {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+
   align-items: center;
-  gap: 15px;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 38px;
+
+  text-align: center;
+
+  color: #8c8298;
+
+  font-size: 11px;
+}
+
+.empty svg {
+  color: #a99cba;
+}
+
+.empty b {
+  color: #5f556c;
+
+  font-size: 13px;
+}
+
+.empty span {
+  color: #938a9e;
+
+  font-size: 10px;
+}
+
+/* ============================================================
+   NOTICES
+   ============================================================ */
+
+.notice {
+  width: 100%;
+
+  margin-bottom: 16px;
+
+  padding: 12px 14px;
+
+  border:
+    1px solid #d9d0e5;
+
+  border-radius: 9px;
+
+  background: #faf8fc;
+
+  color: #5c506c;
+
+  font-size: 11px;
+
+  line-height: 1.45;
+}
+
+/* ============================================================
+   ============================================================
+   REPOSITORIES PAGE
+   ============================================================
+   ============================================================ */
+
+.repositoryPage {
+  padding: 19px 20px 16px;
+}
+
+/* ============================================================
+   REPOSITORY PAGE HEADER
+   ============================================================ */
+
+.repositoryPageHeader {
+  margin-bottom: 17px;
+}
+
+.repositoryPageHeader h2 {
+  margin-top: 2px;
+
+  font-size: 16px;
+}
+
+.repositoryPageHeader .eyebrow {
+  margin-bottom: 3px;
+}
+
+/* ============================================================
+   REPOSITORY SUMMARY CARDS
+   ============================================================ */
+
+.repositoryStats {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 12px;
 
   margin-bottom: 16px;
 }
 
-.panelHead h2 {
-  margin: 0 0 3px;
+.repositoryStatCard {
+  min-width: 0;
 
-  font-size: 15px;
+  min-height: 86px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 14px 15px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 3px 14px rgba(51, 36, 92, 0.035);
+
+  overflow: hidden;
+}
+
+.repositoryStatIcon {
+  width: 34px;
+  height: 34px;
+
+  flex: 0 0 34px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 9px;
+
+  background: var(--purple-soft);
+
+  color: var(--purple);
+}
+
+.repositoryStatCard > div:last-child {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.repositoryStatCard strong {
+  display: block;
+
+  margin: 0;
+
+  color: var(--text);
+
+  font-size: 22px;
+
+  font-weight: 800;
+
+  line-height: 1;
+}
+
+.repositoryStatCard b {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #51475e;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  line-height: 1.25;
+}
+
+.repositoryStatCard span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #93899d;
+
+  font-size: 9px;
+
+  line-height: 1.25;
+}
+
+/* Connected */
+
+.repositoryStatCard.connected {
+  border-color: #e1e8e4;
+}
+
+.repositoryStatCard.connected .repositoryStatIcon {
+  background: var(--green-bg);
+
+  color: var(--green);
+}
+
+/* Attention */
+
+.repositoryStatCard.attention {
+  border-color: #eee4d1;
+}
+
+.repositoryStatCard.attention .repositoryStatIcon {
+  background: var(--yellow-bg);
+
+  color: var(--yellow);
+}
+
+/* Offline */
+
+.repositoryStatCard.offline {
+  border-color: #eadde4;
+}
+
+.repositoryStatCard.offline .repositoryStatIcon {
+  background: var(--red-bg);
+
+  color: var(--red);
+}
+
+/* Total */
+
+.repositoryStatCard.total .repositoryStatIcon {
+  background: var(--purple-soft);
+
+  color: var(--purple);
+}
+
+/* ============================================================
+   REPOSITORY SEARCH / FILTER TOOLBAR
+   ============================================================ */
+
+.repositoryToolbar {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(280px, 1fr)
+    170px
+    auto;
+
+  align-items: center;
+
+  gap: 9px;
+
+  margin-bottom: 11px;
+}
+
+.repositorySearch {
+  min-width: 0;
+
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 10px;
+
+  border:
+    1px solid #ded8e7;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #82788f;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.repositorySearch:focus-within {
+  border-color: #a892c9;
+
+  box-shadow:
+    0 0 0 3px rgba(117, 87, 184, 0.075);
+}
+
+.repositorySearchIcon {
+  width: 18px;
+  height: 18px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 18px;
+
+  color: #8b8097;
+}
+
+.repositorySearch input {
+  width: 100%;
+  min-width: 0;
+
+  height: 100%;
+
+  padding: 0;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: #41374d;
+
+  font-size: 10px;
+}
+
+.repositorySearch input::placeholder {
+  color: #aaa1b1;
+}
+
+.repositorySearchClear {
+  width: 23px;
+  height: 23px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 23px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: #9b91a3;
+
+  cursor: pointer;
+}
+
+.repositorySearchClear:hover {
+  background: #f2edf6;
+
+  color: #584d62;
+}
+
+.repositoryStatusFilter {
+  width: 100%;
+
+  height: 38px;
+
+  padding:
+    0 31px 0 11px;
+
+  border:
+    1px solid #ded8e7;
+
+  border-radius: 8px;
+
+  background:
+    #ffffff;
+
+  color: #4f4560;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.repositoryStatusFilter:focus {
+  border-color: #a892c9;
+
+  box-shadow:
+    0 0 0 3px rgba(117, 87, 184, 0.075);
+}
+
+.repositoryViewToggle {
+  height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+
+  padding: 3px;
+
+  border:
+    1px solid #ded8e7;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+}
+
+.repositoryViewToggle button {
+  width: 31px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: #8a8093;
+
+  font-size: 16px;
+
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.repositoryViewToggle button:hover {
+  background: #f5f1f8;
+
+  color: #5b5065;
+}
+
+.repositoryViewToggle button.active {
+  background: var(--purple-soft);
+
+  color: var(--purple);
+
+  box-shadow:
+    inset 0 0 0 1px rgba(117, 87, 184, 0.10);
+}
+
+/* ============================================================
+   REPOSITORY RESULT SUMMARY
+   ============================================================ */
+
+.repositoryResultSummary {
+  min-height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 7px;
+}
+
+.repositoryResultSummary > div {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+}
+
+.repositoryResultSummary b {
+  color: #4c4257;
+
+  font-size: 10px;
+
+  font-weight: 800;
+}
+
+.repositoryResultSummary span {
+  color: #968c9f;
+
+  font-size: 9px;
+}
+
+.repositoryClearFilters {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 5px;
+
+  padding: 5px 7px;
+
+  border: 0;
+
+  border-radius: 6px;
+
+  background: #f4f0f7;
+
+  color: #725e87;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.repositoryClearFilters:hover {
+  background: #ece5f1;
+
+  color: #513c66;
+}
+
+/* ============================================================
+   REPOSITORY LIST
+   ============================================================ */
+
+.repositoryList {
+  width: 100%;
+
+  display: grid;
+
+  gap: 11px;
+
+  min-width: 0;
+}
+
+.repositoryGrid {
+  grid-template-columns: 1fr;
+}
+
+.repositoryListView {
+  grid-template-columns: 1fr;
+}
+
+/* ============================================================
+   REPOSITORY CARD
+   ============================================================ */
+
+.repoCard {
+  width: 100%;
+
+  min-width: 0;
+
+  display: block;
+
+  padding: 15px 16px;
+
+  border:
+    1px solid #e4deeb;
+
+  border-radius: 11px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 3px 14px rgba(51, 36, 92, 0.035);
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.repoCard:hover {
+  border-color: #d4c8e2;
+
+  box-shadow:
+    0 7px 20px rgba(51, 36, 92, 0.065);
+}
+
+.repoCard.selected {
+  border-color: #a98ad0;
+
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #fcfaff 100%
+    );
+
+  box-shadow:
+    0 0 0 2px rgba(117, 87, 184, 0.07),
+    0 7px 22px rgba(51, 36, 92, 0.065);
+}
+
+/* ============================================================
+   REPOSITORY CARD MAIN
+   ============================================================ */
+
+.repoCardMain {
+  width: 100%;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  min-width: 0;
+}
+
+.repoCardMain .repoIcon {
+  flex: 0 0 auto;
+
+  margin: 0;
+}
+
+.repoInfo {
+  min-width: 0;
+
+  flex: 1 1 auto;
+}
+
+.repoTitle {
+  display: flex;
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 7px;
+}
+
+.repoInfo b,
+.repoTitle b {
+  color: #30283a;
+
+  font-size: 13px;
+
+  font-weight: 800;
+
   line-height: 1.3;
 }
 
-.panelHead span {
-  color: #7183a1;
-  font-size: 11px;
+.repoInfo p {
+  margin: 4px 0 0;
+
+  color: #7e7389;
+
+  font-size: 9px;
+
+  line-height: 1.4;
 }
 
-.link {
-  border: 0;
-  background: transparent;
+.repoPath {
+  display: block;
 
-  color: #2f5da8;
+  margin-top: 5px;
+
+  color: #7c7187;
+
+  font-size: 9px;
+
+  line-height: 1.35;
+
+  word-break: break-all;
+}
+
+/* ============================================================
+   REPOSITORY ICON
+   ============================================================ */
+
+.repoIcon {
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 38px;
+
+  border-radius: 9px;
+
+  background: #f0ebf7;
+
+  color: var(--purple);
+}
+
+.repoIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* ============================================================
+   SELECTED BADGE
+   ============================================================ */
+
+.selectedBadge {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 3px 7px;
+
+  border:
+    1px solid #ded2ed;
+
+  border-radius: 999px;
+
+  background: #f0eafa;
+
+  color: #7557b8;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  line-height: 1;
+
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   CONNECTION BADGE
+   ============================================================ */
+
+.connectionBadge {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  padding: 5px 8px;
+
+  border-radius: 999px !important;
+
+  font-size: 8px;
+
+  font-weight: 800;
+
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+.connectionBadge.connected {
+  border:
+    1px solid var(--green-border) !important;
+
+  background:
+    var(--green-bg) !important;
+
+  color:
+    var(--green) !important;
+}
+
+.connectionBadge.failed {
+  border:
+    1px solid var(--red-border) !important;
+
+  background:
+    var(--red-bg) !important;
+
+  color:
+    var(--red) !important;
+}
+
+.connectionBadge.unknown {
+  border:
+    1px solid var(--yellow-border) !important;
+
+  background:
+    var(--yellow-bg) !important;
+
+  color:
+    var(--yellow) !important;
+}
+
+/* ============================================================
+   REPOSITORY META
+   ============================================================ */
+
+.repoMeta {
+  width: auto;
+
+  display: flex;
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin:
+    10px 0 9px 50px;
+}
+
+.repoMeta > span {
+  min-height: 27px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 5px;
+
+  padding: 5px 8px;
+
+  border:
+    1px solid #e8e3ed;
+
+  border-radius: 7px;
+
+  background: #faf9fc;
+
+  color: #766b80;
+
+  font-size: 8px;
+
+  font-weight: 700;
+
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+.repoMeta > span svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ============================================================
+   REPOSITORY ACTIONS
+   ============================================================ */
+
+.repoActions {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  flex-wrap: wrap;
+
+  gap: 7px;
+
+  padding-top: 10px;
+
+  border-top:
+    1px solid #eeeaf2;
+}
+
+.repoActions .ghost,
+.repoActions .danger {
+  min-height: 32px;
+
+  padding: 7px 10px;
+
+  font-size: 9px;
+}
+
+.repoActions .primary {
+  min-height: 32px;
+
+  padding: 7px 10px;
+
+  font-size: 9px;
+}
+
+/* ============================================================
+   REPOSITORY LIST VIEW
+   ============================================================ */
+
+.repositoryListView .repoCard {
+  padding: 13px 15px;
+}
+
+.repositoryListView .repoMeta {
+  margin-bottom: 7px;
+}
+
+/* ============================================================
+   REPOSITORY PAGINATION
+   ============================================================ */
+
+.repositoryPagination {
+  min-height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  margin-top: 12px;
+
+  padding-top: 10px;
+
+  border-top:
+    1px solid #eeeaf2;
+}
+
+.repositoryPagination > span {
+  color: #958b9e;
+
+  font-size: 9px;
+}
+
+.repositoryPaginationControls {
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+}
+
+.repositoryPaginationControls button {
+  min-width: 28px;
+  height: 28px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border:
+    1px solid #e0d9e7;
+
+  border-radius: 7px;
+
+  background: #ffffff;
+
+  color: #7d7187;
 
   font-size: 11px;
   font-weight: 700;
@@ -478,17 +2386,2561 @@ header p {
   cursor: pointer;
 }
 
-.link:hover {
-  color: #254b8c;
+.repositoryPaginationControls button:hover:not(:disabled) {
+  background: #f5f1f8;
+
+  border-color: #d1c4dd;
+
+  color: #5c4c6d;
+}
+
+.repositoryPaginationControls button.current {
+  border-color: var(--purple);
+
+  background: var(--purple);
+
+  color: #ffffff;
+
+  box-shadow:
+    0 3px 8px rgba(117, 87, 184, 0.17);
+}
+
+.repositoryPaginationControls button:disabled {
+  background: #faf9fc;
+
+  color: #c0b8c5;
+
+  cursor: not-allowed;
 }
 
 /* ============================================================
-   TABLE
+   DELIVERY SELECTOR
    ============================================================ */
+
+.deliverySelector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 12px 14px;
+
+  margin-bottom: 14px;
+
+  border:
+    1px solid #e4deeb;
+
+  border-radius: 10px;
+
+  background: #f8f6fa;
+}
+
+.deliverySelector b,
+.deliverySelector span {
+  display: block;
+}
+
+.deliverySelector b {
+  color: #51475e;
+
+  font-size: 10px;
+}
+
+.deliverySelector span {
+  margin-top: 3px;
+
+  color: #93899d;
+
+  font-size: 9px;
+}
+
+.deliverySelector select {
+  min-width: 220px;
+
+  padding: 9px 11px;
+
+  border:
+    1px solid #ddd5e5;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #4f4560;
+
+  font-size: 10px;
+
+  cursor: pointer;
+}
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+
+.historyPanel {
+  padding: 20px;
+}
+
+.historyHeader {
+  margin-bottom: 18px;
+}
+
+.historySummary {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 10px;
+
+  margin-bottom: 17px;
+}
+
+.historyStat {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 14px;
+
+  border:
+    1px solid #e4deeb;
+
+  border-radius: 10px;
+
+  background: #ffffff;
+}
+
+.historyStatIcon {
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 34px;
+
+  border-radius: 9px;
+
+  background: #eee7f7;
+
+  color: var(--purple);
+}
+
+.historyStatIcon.success {
+  background: var(--green-bg);
+
+  color: var(--green);
+}
+
+.historyStatIcon.failed {
+  background: var(--red-bg);
+
+  color: var(--red);
+}
+
+.historyStat span {
+  display: block;
+
+  color: #81758e;
+
+  font-size: 9px;
+
+  font-weight: 700;
+}
+
+.historyStat strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--text);
+
+  font-size: 20px;
+
+  line-height: 1;
+}
+
+/* ============================================================
+   HISTORY FILTERS
+   ============================================================ */
+
+.historyFilters {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr auto;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.historyDateFilters {
+  grid-template-columns: 1fr 1fr auto;
+  margin-top: 2px;
+}
+
+.historySearch,
+.historyFilterField {
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 0 12px;
+
+  border:
+    1px solid #ded8e7;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #82788f;
+}
+
+.historyFilterField {
+  padding: 0 10px;
+}
+
+.historyFilterField label {
+  color: #6d6377;
+  font-size: 10px;
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+.historyFilterField input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #41374d;
+  font-size: 10px;
+}
+
+.historySearch:focus-within,
+.historyFilterField:focus-within {
+  border-color: #a892c9;
+
+  box-shadow:
+    0 0 0 3px rgba(117, 87, 184, 0.075);
+}
+
+.historySearch input {
+  width: 100%;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: #41374d;
+
+  font-size: 10px;
+}
+
+.historySearch input::placeholder {
+  color: #aaa1b1;
+}
+
+.historyFilterField select {
+  width: 100%;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: #4f4560;
+
+  font-size: 10px;
+
+  cursor: pointer;
+}
+
+.clearSearch {
+  display: grid;
+  place-items: center;
+
+  padding: 2px;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #9c92a4;
+
+  cursor: pointer;
+}
+
+/* ============================================================
+   HISTORY RESULTS
+   ============================================================ */
+
+.historyResultsInfo {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 10px;
+}
+
+.historyResultsInfo > div {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+}
+
+.historyResultsInfo b {
+  color: #51475e;
+
+  font-size: 10px;
+}
+
+.historyResultsInfo span {
+  color: #948a9d;
+
+  font-size: 9px;
+}
+
+/* ============================================================
+   HISTORY TABLE
+   ============================================================ */
+
+.historyTable {
+  width: 100%;
+
+  overflow-x: auto;
+
+  border:
+    1px solid #e4deeb;
+
+  border-radius: 10px;
+
+  background: #ffffff;
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: 1.4fr 1.15fr 0.7fr 1.1fr 0.9fr 0.8fr 0.7fr 0.8fr 1.2fr 0.9fr 1.1fr 0.9fr;
+  gap: 12px;
+  align-items: center;
+  min-width: 1200px;
+  padding: 12px 14px;
+  border-top: 1px solid #eeeaf2;
+}
+
+.historyRow:first-child {
+  border-top: 0;
+}
+
+.historyRow:not(.historyHead):hover {
+  background: #fcfbfd;
+}
+
+.historyHead {
+  background: #f8f6fa;
+
+  color: #8c8195;
+
+  font-size: 8px;
+
+  font-weight: 800;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+}
+
+.historyRow > span {
+  min-width: 0;
+
+  color: #51475e;
+
+  font-size: 9px;
+}
+
+.historyRow > span b {
+  display: block;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.historyRow > span small {
+  display: block;
+
+  margin-top: 4px;
+
+  overflow: hidden;
+
+  color: #9b91a1;
+
+  font-size: 8px;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.historyRowActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.paginationButton.active {
+  background: #f3ecff;
+  border-color: #a78fe0;
+  color: #4f3a8a;
+}
+
+.jobReferenceText {
+  color: var(--purple);
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+
+  font-size: 9px;
+}
+
+.createdText {
+  font-weight: 600;
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+
+.settings {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+.settings label {
+  color: #756b7f;
+
+  font-size: 10px;
+
+  font-weight: 700;
+}
+
+.settings input {
+  display: block;
+
+  width: 100%;
+
+  margin-top: 7px;
+
+  padding: 11px;
+
+  border:
+    1px solid #ded8e7;
+
+  border-radius: 8px;
+
+  background: #faf9fc;
+
+  color: #40364a;
+
+  font-size: 11px;
+}
+
+/* ============================================================
+   FORM FIELDS
+   ============================================================ */
+
+.formGrid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 13px;
+}
+
+.formField {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.formField.full {
+  grid-column: 1 / -1;
+}
+
+.formField label {
+  margin-bottom: 6px;
+
+  color: #5c5266;
+
+  font-size: 10px;
+
+  font-weight: 700;
+}
+
+.formField input,
+.formField select,
+.formField textarea {
+  width: 100%;
+
+  min-height: 38px;
+
+  padding: 9px 10px;
+
+  border:
+    1px solid #ddd6e5;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #40364a;
+
+  font-size: 10px;
+}
+
+.formField textarea {
+  min-height: 90px;
+
+  resize: vertical;
+}
+
+.formField input::placeholder,
+.formField textarea::placeholder {
+  color: #aaa1b0;
+}
+
+.formField input:focus,
+.formField select:focus,
+.formField textarea:focus {
+  border-color: #a892c9;
+
+  box-shadow:
+    0 0 0 3px rgba(117, 87, 184, 0.075);
+}
+
+.formField > span {
+  margin-top: 5px;
+
+  color: #978d9f;
+
+  font-size: 9px;
+
+  line-height: 1.4;
+}
+
+.audit-log-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.audit-log-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 82px;
+  padding: 14px 18px;
+  border: 1px solid #e6e1ee;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(52, 34, 83, 0.04);
+}
+
+.audit-log-summary-card.total {
+  border-color: #e8ddff;
+}
+
+.audit-log-summary-card.success {
+  border-color: #d7f0e1;
+}
+
+.audit-log-summary-card.warning {
+  border-color: #f8e4bf;
+}
+
+.audit-log-summary-card.failed {
+  border-color: #f8d8df;
+}
+
+.audit-log-summary-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #f5f1fb;
+  color: #5a3da3;
+}
+
+.audit-log-summary-card.success .audit-log-summary-icon {
+  background: #e8f7ef;
+  color: #2a9a69;
+}
+
+.audit-log-summary-card.warning .audit-log-summary-icon {
+  background: #fff3df;
+  color: #c07d00;
+}
+
+.audit-log-summary-card.failed .audit-log-summary-icon {
+  background: #fdecef;
+  color: #d7506d;
+}
+
+.audit-log-summary-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.audit-log-summary-body strong {
+  color: #2a1f3f;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.audit-log-summary-body span {
+  color: #6d6778;
+  font-size: 11px;
+}
+
+.audit-log-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.audit-log-clear {
+  align-self: end;
+}
+
+/* ============================================================
+   FORM SECTION TITLES
+   ============================================================ */
+
+.formSectionTitle {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin:
+    18px 0 11px;
+
+  color: #4d4357;
+
+  font-size: 11px;
+
+  font-weight: 800;
+}
+
+/* ============================================================
+   TARGET LIST
+   ============================================================ */
+
+.targetList {
+  display: grid;
+
+  gap: 8px;
+
+  padding: 10px;
+
+  border:
+    1px solid #e6e0eb;
+
+  border-radius: 9px;
+
+  background: #faf9fc;
+}
+
+.targetListHeader {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 5px;
+}
+
+.targetListHeader b {
+  color: #544a5e;
+
+  font-size: 10px;
+}
+
+.targetRow {
+  display: grid;
+
+  grid-template-columns:
+    28px
+    minmax(0, 1fr)
+    minmax(160px, 0.8fr)
+    34px;
+
+  gap: 8px;
+
+  align-items: center;
+
+  padding: 8px;
+
+  border:
+    1px solid #e5dfe9;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+}
+
+.targetRowNumber {
+  width: 27px;
+  height: 27px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 7px;
+
+  background: var(--purple-soft);
+
+  color: var(--purple);
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.targetRemoveButton {
+  width: 32px;
+  height: 32px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border:
+    1px solid var(--red-border);
+
+  border-radius: 7px;
+
+  background: #ffffff;
+
+  color: var(--red);
+
+  cursor: pointer;
+}
+
+.targetRemoveButton:hover:not(:disabled) {
+  background: var(--red-bg);
+}
+
+/* ============================================================
+   RECIPIENTS
+   ============================================================ */
+
+.recipientField {
+  min-width: 0;
+}
+
+.recipientInputRow {
+  display: flex;
+
+  align-items: stretch;
+
+  gap: 8px;
+}
+
+.recipientInputRow input {
+  flex: 1;
+
+  min-width: 0;
+}
+
+.recipientAddButton {
+  flex: 0 0 auto;
+
+  min-height: 38px;
+
+  white-space: nowrap;
+}
+
+.recipientListInput {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-top: 8px;
+}
+
+.recipientChip {
+  max-width: 100%;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 5px;
+
+  padding:
+    5px 7px 5px 9px;
+
+  border:
+    1px solid #ded7e7;
+
+  border-radius: 999px;
+
+  background: #f8f6fa;
+
+  color: #554b5e;
+
+  font-size: 9px;
+
+  line-height: 1.2;
+}
+
+.recipientChip > span {
+  min-width: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.recipientChip button {
+  width: 20px;
+  height: 20px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: #978c9f;
+
+  cursor: pointer;
+}
+
+.recipientChip button:hover:not(:disabled) {
+  background: #f0e9f4;
+
+  color: var(--red);
+}
+
+/* ============================================================
+   MODAL OVERLAY
+   ============================================================ */
+
+.modalOverlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(37, 25, 62, 0.42);
+
+  backdrop-filter: blur(2px);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+.modal {
+  width:
+    min(780px, calc(100vw - 40px));
+
+  max-height:
+    calc(100vh - 40px);
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  border:
+    1px solid #ddd5e5;
+
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 24px 70px rgba(40, 28, 61, 0.20);
+}
+
+.modalHeader {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding: 18px 20px;
+
+  border-bottom:
+    1px solid #eeeaf2;
+}
+
+.modalHeader h2 {
+  margin: 4px 0 4px;
+
+  color: #30283a;
+
+  font-size: 17px;
+
+  font-weight: 800;
+
+  letter-spacing: -0.025em;
+}
+
+.modalHeader span {
+  color: #8a8092;
+
+  font-size: 10px;
+
+  line-height: 1.45;
+}
+
+.modal form {
+  min-height: 0;
+
+  overflow-y: auto;
+
+  padding: 18px 20px;
+}
+
+.modalFooter {
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  margin-top: 20px;
+
+  padding-top: 15px;
+
+  border-top:
+    1px solid #eeeaf2;
+}
+
+/* ============================================================
+   MODAL SCROLLBAR
+   ============================================================ */
+
+.modal::-webkit-scrollbar,
+.deliveryModal::-webkit-scrollbar {
+  width: 7px;
+}
+
+.modal::-webkit-scrollbar-track,
+.deliveryModal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal::-webkit-scrollbar-thumb,
+.deliveryModal::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+
+  background: #d2c8dc;
+}
+
+.modal::-webkit-scrollbar-thumb:hover,
+.deliveryModal::-webkit-scrollbar-thumb:hover {
+  background: #b8abc5;
+}
+
+/* ============================================================
+   SMTP NOTICE
+   ============================================================ */
+
+.smtpNotice {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 8px;
+
+  margin-top: 15px;
+
+  padding: 11px 12px;
+
+  border:
+    1px solid #dce9e2;
+
+  border-radius: 8px;
+
+  background: #f4faf6;
+
+  color: #4f8069;
+
+  font-size: 9px;
+
+  line-height: 1.45;
+}
+
+.smtpNotice svg {
+  flex: 0 0 auto;
+}
+
+/* ============================================================
+   RESULT MODAL
+   ============================================================ */
+
+.deliveryModal {
+  width:
+    min(820px, calc(100vw - 36px));
+
+  max-height:
+    calc(100vh - 36px);
+
+  overflow: auto;
+
+  border-radius: 15px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 24px 70px rgba(40, 28, 61, 0.20);
+}
+
+.resultGrid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 11px;
+
+  padding: 16px 22px;
+}
+
+.resultItem {
+  padding: 12px;
+
+  border:
+    1px solid #e5dfe9;
+
+  border-radius: 9px;
+
+  background: #faf9fc;
+}
+
+.deliveryResultHeader {
+  padding: 18px 22px;
+
+  border-bottom:
+    1px solid #eeeaf2;
+}
+
+.jobReference {
+  margin:
+    0 22px 14px;
+}
+
+.deliveryError {
+  margin:
+    0 22px 14px;
+}
+
+.recipientsBlock {
+  margin:
+    0 22px 14px;
+}
+
+.deliveryModalFooter {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  padding: 14px 22px;
+
+  border-top:
+    1px solid #eeeaf2;
+}
+
+/* ============================================================
+   PROFILE
+   ============================================================ */
+
+.profileCard {
+  min-width: 0;
+
+  padding: 20px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 13px;
+
+  background: #ffffff;
+
+  box-shadow: var(--shadow-sm);
+}
+
+.profileIdentity {
+  min-width: 0;
+}
+
+.profileIdentity h3 {
+  margin: 0;
+
+  color: #30283a;
+
+  font-size: 17px;
+
+  font-weight: 800;
+}
+
+.profileIdentity > span {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #8c8295;
+
+  font-size: 10px;
+}
+
+.profileSecurity {
+  overflow-wrap: anywhere;
+}
+
+.profilePage {
+  padding: 22px;
+}
+
+.profilePage .panelHead {
+  margin-bottom: 20px;
+}
+
+.profileOverview {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.96fr) minmax(440px, 1.04fr);
+  gap: 30px;
+  align-items: center;
+}
+
+.profileIdentitySummary {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+.profileAvatar {
+  width: 104px;
+  height: 104px;
+  flex: 0 0 104px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #eee8fb, #ddd3f7);
+  color: #5131aa;
+  font-size: 36px;
+  font-weight: 800;
+}
+
+.profileIdentityDetails {
+  min-width: 0;
+}
+
+.profileNameRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profileNameRow h3 {
+  margin: 0;
+  color: #21184a;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.profileRoleBadge {
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: #ece5fb;
+  color: #5335ad;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.profileDetail,
+.profileStatusLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: #5f5874;
+  font-size: 12px;
+}
+
+.profileDetail svg {
+  flex: 0 0 auto;
+  color: #3b2d70;
+}
+
+.profileStatusLine i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: #39a373;
+  box-shadow: 0 0 0 3px #e8f7ef;
+}
+
+.profileStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #e7e1ee;
+  border-radius: 9px;
+  background: #fbfaff;
+}
+
+.profileStat {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  min-height: 97px;
+  padding: 17px 22px;
+}
+
+.profileStat:nth-child(odd) {
+  border-right: 1px solid #e7e1ee;
+}
+
+.profileStat:nth-child(-n + 2) {
+  border-bottom: 1px solid #e7e1ee;
+}
+
+.profileStatIcon,
+.profileSectionHeading > span,
+.profileActionIcon,
+.profileAbout > span {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #f0ebfb;
+  color: #5233b0;
+}
+
+.profileStatIcon {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  border-radius: 50%;
+  background: #f4effc;
+}
+
+.profileStatIcon.success {
+  background: #eaf8f0;
+  color: #2d9870;
+}
+
+.profileStat small,
+.profileStat b,
+.profileStat div > span {
+  display: block;
+}
+
+.profileStat small {
+  color: #6d6480;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.profileStat b {
+  margin-top: 4px;
+  color: #292046;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profileStat div > span {
+  margin-top: 5px;
+  color: #716a82;
+  font-size: 11px;
+}
+
+.profileDivider {
+  height: 1px;
+  margin: 20px 0 14px;
+  background: #e8e2ed;
+}
+
+.profileSectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 14px;
+}
+
+.profileSectionHeading h3,
+.profileActionCopy h3,
+.profileAbout h3 {
+  margin: 0;
+  color: #282044;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.profileFormGrid {
+  gap: 15px 28px;
+}
+
+.profileFormGrid label {
+  color: #68607b;
+  font-size: 11px;
+}
+
+.profileFormGrid input {
+  min-height: 39px;
+  margin-top: 7px;
+  background: #fcfbfe;
+  color: #30284d;
+  font-size: 12px;
+}
+
+.profileActionCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.profileActionCopy {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.profileActionCopy p,
+.profileAbout p {
+  margin: 5px 0 0;
+  color: #716984;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.profilePasswordCard {
+  margin-top: 14px;
+}
+
+.profileAbout {
+  display: flex;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 20px;
+  border: 1px solid #dcd7f0;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #faf9ff, #f7f8ff);
+}
+
+.profileAbout > span {
+  border-radius: 50%;
+  background: #4932c5;
+  color: #ffffff;
+}
+
+.profileAbout p + p {
+  margin-top: 3px;
+}
+
+/* ============================================================
+   LINKS
+   ============================================================ */
+
+.link {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color: var(--purple);
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.link:hover {
+  color: var(--purple-dark);
+
+  text-decoration: underline;
+}
+
+/* ============================================================
+   LOGIN / AUTH
+   ============================================================ */
+
+.login-page {
+  min-height: 100vh;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(420px, 0.85fr);
+
+  background:
+    linear-gradient(
+      135deg,
+      #33245c 0%,
+      #2a1d4c 50%,
+      #f6f4fa 50%,
+      #faf9fc 100%
+    );
+}
+
+.login-card {
+  width: 100%;
+  max-width: 500px;
+
+  padding: 34px;
+
+  border:
+    1px solid #e4deeb;
+
+  border-radius: 15px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 24px 60px rgba(51, 36, 92, 0.10);
+}
+
+.login-logo {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 10px;
+
+  background: var(--sidebar-bg);
+
+  color: #ffffff;
+
+  font-weight: 800;
+}
+
+.login-button {
+  width: 100%;
+
+  min-height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 11px 16px;
+
+  border:
+    1px solid var(--purple);
+
+  border-radius: 9px;
+
+  background: var(--purple);
+
+  color: #ffffff;
+
+  font-size: 11px;
+
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.login-button:hover:not(:disabled) {
+  background: var(--purple-dark);
+}
+
+/* ============================================================
+   AUTH LOADING
+   ============================================================ */
+
+.auth-loading {
+  min-height: 100vh;
+
+  display: grid;
+  place-items: center;
+
+  background: #f7f5fa;
+
+  color: #4f4560;
+}
+
+.auth-loading > div {
+  text-align: center;
+}
+
+/* ============================================================
+   SETTINGS LANGUAGE / FONT CARDS
+   ============================================================ */
+
+.settings button {
+  font-family: inherit;
+}
+
+/* ============================================================
+   DASHBOARD REDESIGN SUPPORT
+   ============================================================ */
+
+.dashboard-redesign {
+  width: 100%;
+
+  margin-top: 18px;
+
+  padding-bottom: 28px;
+
+  color: #30283a;
+}
+
+.dashboard-kpi-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 14px;
+}
+
+.dashboard-kpi-card,
+.dashboard-panel {
+  min-width: 0;
+
+  border:
+    1px solid #e4deeb;
+
+  border-radius: 13px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 4px 18px rgba(51, 36, 92, 0.045);
+}
+
+.dashboard-kpi-card {
+  min-height: 125px;
+
+  padding: 16px;
+}
+
+.dashboard-insight-grid,
+.dashboard-operations-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 14px;
+
+  margin-top: 14px;
+}
+
+.dashboard-repository-health,
+.dashboard-last-panel {
+  min-width: 0;
+}
+
+.dashboard-activity-panel,
+.dashboard-recent-panel,
+.dashboard-last-panel {
+  min-width: 0;
+
+  border:
+    1px solid #e4deeb;
+
+  border-radius: 13px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 4px 18px rgba(51, 36, 92, 0.045);
+}
+
+/* ============================================================
+   LANGUAGE TYPOGRAPHY
+   ============================================================ */
+
+.app[data-language="te"] nav button,
+.app[data-language="hi"] nav button {
+  line-height: 1.5;
+}
+
+.app[data-language="te"] h1,
+.app[data-language="hi"] h1 {
+  line-height: 1.25;
+
+  letter-spacing: 0;
+}
+
+.app[data-language="te"] button,
+.app[data-language="hi"] button {
+  line-height: 1.45;
+}
+
+/* ============================================================
+   LARGE DESKTOP
+   ============================================================ */
+
+@media (min-width: 1600px) {
+  .app > main {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+
+  .repositoryPage {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .repoCard {
+    padding:
+      16px 18px;
+  }
+}
+
+/* ============================================================
+   TABLET
+   ============================================================ */
+
+@media (max-width: 1100px) {
+  .app > aside {
+    width: 210px;
+    min-width: 210px;
+    max-width: 210px;
+
+    flex-basis: 210px;
+  }
+
+  .app > main {
+    width: calc(100% - 210px);
+
+    padding:
+      26px 28px;
+  }
+
+  .repositoryStats {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .repositoryToolbar {
+    grid-template-columns:
+      minmax(0, 1fr)
+      170px
+      auto;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .historySummary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .historyFilters {
+    grid-template-columns:
+      1fr 1fr;
+  }
+
+  .historySearch {
+    grid-column: 1 / -1;
+  }
+
+  .profileOverview {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   SMALL TABLET
+   ============================================================ */
+
+@media (max-width: 800px) {
+  .app > main {
+    padding: 22px;
+  }
+
+  header {
+    align-items: flex-start;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formField.full {
+    grid-column: auto;
+  }
+
+  .settings {
+    grid-template-columns: 1fr;
+  }
+
+  .profileStats {
+    max-width: none;
+  }
+
+  .repositoryToolbar {
+    grid-template-columns:
+      1fr 160px auto;
+  }
+
+  .repositoryStats {
+    gap: 10px;
+  }
+
+  .repositoryStatCard {
+    min-height: 80px;
+  }
+
+  .repoMeta {
+    margin-left: 0;
+  }
+
+  .repoActions {
+    justify-content: flex-start;
+  }
+
+  .targetRow {
+    grid-template-columns:
+      28px
+      minmax(0, 1fr)
+      34px !important;
+  }
+
+  .targetRow .formField:nth-child(3) {
+    grid-column: 2 / 3;
+  }
+
+  .targetRow .targetRemoveButton {
+    grid-column: 3;
+
+    grid-row:
+      1 / span 2;
+  }
+
+  .recipientInputRow {
+    flex-direction: row;
+  }
+
+  .recipientAddButton {
+    width: 36px;
+  }
+
+  .modalOverlay {
+    align-items: flex-start;
+
+    padding: 12px;
+  }
+
+  .modal,
+  .deliveryModal {
+    width: 100%;
+
+    max-height:
+      calc(100vh - 24px);
+
+    border-radius: 13px;
+  }
+
+  .resultGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 650px) {
+  .app > aside {
+    display: none;
+  }
+
+  .app > main {
+    width: 100%;
+
+    min-width: 0;
+
+    padding: 17px;
+  }
+
+  header {
+    display: block;
+
+    margin-bottom: 18px;
+  }
+
+  header p {
+    font-size: 11px;
+  }
+
+  .actions {
+    width: 100%;
+
+    margin-top: 13px;
+
+    flex-wrap: wrap;
+  }
+
+  .actions button,
+  .dashboard-language-control {
+    flex: 1 1 auto;
+
+    justify-content: center;
+  }
+
+  h1 {
+    font-size:
+      clamp(25px, 7vw, 31px);
+  }
+
+  .panel {
+    padding: 15px;
+  }
+
+  .panelHead {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+  .profilePage {
+    padding: 16px;
+  }
+
+  .profileIdentitySummary {
+    align-items: flex-start;
+  }
+
+  .profileAvatar {
+    width: 78px;
+    height: 78px;
+    flex-basis: 78px;
+    font-size: 27px;
+  }
+
+  .profileStats {
+    grid-template-columns: 1fr;
+  }
+
+  .profileStat:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .profileStat:nth-child(-n + 2) {
+    border-bottom: 1px solid #e7e1ee;
+  }
+
+  .profileStat:nth-child(3) {
+    border-bottom: 1px solid #e7e1ee;
+  }
+
+  .profileActionCard {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profileActionCard .ghost {
+    align-self: flex-end;
+  }
+
+  /* Repository page */
+
+  .repositoryPage {
+    padding: 15px;
+  }
+
+  .repositoryPageHeader {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .repositoryPageHeader .primary {
+    align-self: flex-start;
+  }
+
+  .repositoryStats {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryStatCard {
+    min-height: 76px;
+  }
+
+  .repositoryToolbar {
+    grid-template-columns: 1fr;
+
+    gap: 8px;
+  }
+
+  .repositoryViewToggle {
+    width: 100%;
+
+    justify-content: flex-end;
+  }
+
+  .repositoryResultSummary {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    gap: 7px;
+  }
+
+  .repositoryClearFilters {
+    align-self: flex-start;
+  }
+
+  .repoCard {
+    padding: 13px;
+  }
+
+  .repoCardMain {
+    gap: 10px;
+  }
+
+  .repoIcon {
+    width: 34px;
+    height: 34px;
+
+    flex-basis: 34px;
+  }
+
+  .repoInfo b,
+  .repoTitle b {
+    font-size: 12px;
+  }
+
+  .repoPath,
+  .repoInfo p {
+    font-size: 8px;
+  }
+
+  .repoMeta {
+    margin:
+      9px 0 9px 0;
+
+    gap: 5px;
+  }
+
+  .repoMeta > span {
+    min-height: 26px;
+
+    padding: 5px 7px;
+
+    font-size: 7px;
+  }
+
+  .repoActions {
+    justify-content: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+  .repoActions button {
+    min-height: 34px;
+  }
+
+  .repositoryPagination {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .repositoryPaginationControls {
+    align-self: flex-end;
+  }
+
+  /* Generic */
+
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .historySummary {
+    grid-template-columns: 1fr;
+  }
+
+  .historyFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .historySearch {
+    grid-column: auto;
+  }
+
+  .deliverySelector {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .deliverySelector select {
+    width: 100%;
+
+    min-width: 0;
+  }
+
+  .modalHeader,
+  .modal form {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .modalFooter {
+    justify-content: stretch;
+  }
+
+  .modalFooter button {
+    flex: 1 1 auto;
+
+    justify-content: center;
+  }
+
+  .targetRow {
+    grid-template-columns:
+      28px
+      minmax(0, 1fr) !important;
+
+    gap: 8px;
+  }
+
+  .targetRowNumber {
+    grid-column: 1;
+
+    grid-row: 1;
+  }
+
+  .targetRow .formField {
+    grid-column: 2;
+  }
+
+  .targetRow .formField:nth-child(3) {
+    grid-column: 2;
+  }
+
+  .targetRow .targetRemoveButton {
+    grid-column: 2;
+
+    grid-row: auto;
+
+    justify-self: end;
+
+    margin-top: -4px;
+  }
+
+  .recipientInputRow {
+    flex-direction: row;
+  }
+
+  .recipientAddButton {
+    width: 36px !important;
+  }
+
+  .dashboard-kpi-grid,
+  .dashboard-insight-grid,
+  .dashboard-operations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-repository-health,
+  .dashboard-last-panel {
+    grid-column: auto;
+  }
+}
+
+/* ============================================================
+   SMALL MOBILE
+   ============================================================ */
+
+@media (max-width: 480px) {
+  .app > main {
+    padding: 14px;
+  }
+
+  .repositoryPage {
+    padding: 13px;
+  }
+
+  .repositoryStatCard {
+    padding: 12px;
+  }
+
+  .repositoryStatCard strong {
+    font-size: 20px;
+  }
+
+  .repositoryPaginationControls button {
+    min-width: 27px;
+    height: 27px;
+  }
+
+  .modalOverlay {
+    padding: 7px;
+  }
+
+  .modal,
+  .deliveryModal {
+    max-height:
+      calc(100vh - 14px);
+  }
+
+  .repoActions {
+    width: 100%;
+  }
+
+  .repoActions button {
+    flex:
+      1 1 auto;
+  }
+
+  .targetList {
+    padding: 7px;
+  }
+
+  .recipientInputRow {
+    flex-direction: column;
+  }
+
+  .recipientAddButton {
+    width: 100% !important;
+  }
+
+  .login-card {
+    padding:
+      26px 20px;
+  }
+}
+
+/* ============================================================
+   ACCESSIBILITY / REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ============================================================
+   FINAL SAFE UI REPAIR
+   ------------------------------------------------------------
+   Restores shared layout primitives used by:
+   - Repositories
+   - Audit Logs
+   - User Management
+   - Delivery History
+   - Settings
+   - Profile
+   - Repository wizard/modals
+
+   IMPORTANT:
+   This is CSS-only.
+   No React/API/functionality is changed.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   GLOBAL BOX MODEL
+   ------------------------------------------------------------ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* ------------------------------------------------------------
+   MAIN APPLICATION LAYOUT
+   ------------------------------------------------------------ */
+
+.app {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+
+  overflow: visible;
+}
+
+.app > aside {
+  width: 246px;
+  min-width: 246px;
+  max-width: 246px;
+
+  min-height: 100vh;
+
+  flex: 0 0 246px;
+
+  position: relative;
+  z-index: 10;
+}
+
+.app > main {
+  display: block !important;
+
+  width: auto !important;
+  min-width: 0 !important;
+
+  flex: 1 1 auto !important;
+
+  min-height: 100vh;
+
+  overflow-x: hidden;
+  overflow-y: visible;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.app > main > * {
+  min-width: 0;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.app > main section,
+.app > main header,
+.app > main .cards,
+.app > main .grid,
+.app > main .panel {
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------
+   REPOSITORIES PAGE
+   ------------------------------------------------------------ */
+
+.repositoryPage {
+  width: 100%;
+  min-width: 0;
+}
+
+.repositoryPageHeader {
+  width: 100%;
+}
+
+.repositoryList {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------
+   REPOSITORY CARD
+   ------------------------------------------------------------ */
+
+.repoCard {
+  width: 100%;
+  min-width: 0;
+
+  position: relative;
+
+  padding: 18px;
+
+  border: 1px solid #e4deeb;
+  border-radius: 13px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 5px 20px rgba(51, 36, 92, 0.055);
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.repoCard:hover {
+  box-shadow:
+    0 8px 24px rgba(23, 43, 91, 0.075);
+}
+
+.repoCard.selected {
+  border-color: #9b75dc;
+  box-shadow:
+    0 0 0 1px rgba(117, 87, 184, 0.18),
+    0 8px 24px rgba(117, 87, 184, 0.08);
+}
+
+.repoTitle,
+.repoInfo {
+  min-width: 0;
+}
+
+.repoTitle b,
+.repoInfo b,
+.repoInfo p,
+.repoPath {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.repoMeta {
+  min-width: 0;
+
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 6px;
+}
+
+.repoMeta > span {
+  min-width: 0;
+
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.repoActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  flex-wrap: wrap;
+
+  gap: 8px;
+
+  min-width: 0;
+}
+
+.repoActions button {
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------
+   REPOSITORY SUMMARY CARDS
+   ------------------------------------------------------------ */
+
+.repositoryStats,
+.summaryCards {
+  width: 100%;
+  min-width: 0;
+}
+
+.stat {
+  min-width: 0;
+}
+
+.stat span {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------
+   DELIVERY SELECTOR
+   ------------------------------------------------------------ */
+
+.deliverySelector {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  margin-bottom: 14px;
+
+  padding: 12px 14px;
+
+  border: 1px solid #ded7e8;
+  border-radius: 10px;
+
+  background: #faf8fc;
+}
+
+.deliverySelector > div:first-child {
+  min-width: 0;
+
+  flex: 1 1 auto;
+}
+
+.deliverySelector b,
+.deliverySelector span {
+  overflow-wrap: anywhere;
+}
+
+.deliverySelector select {
+  width: min(220px, 100%);
+
+  max-width: 100%;
+}
+
+/* ------------------------------------------------------------
+   PANELS
+   ------------------------------------------------------------ */
+
+.panel {
+  width: 100%;
+  min-width: 0;
+
+  padding: 19px;
+
+  border: 1px solid #e4deeb;
+  border-radius: 14px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 5px 20px rgba(51, 36, 92, 0.055);
+}
+
+.full {
+  width: 100%;
+  min-width: 0;
+}
+
+.panelHead {
+  min-width: 0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 15px;
+
+  margin-bottom: 16px;
+}
+
+.panelHead > div {
+  min-width: 0;
+}
+
+.panelHead h2,
+.panelHead span {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------
+   TABLES
+   ------------------------------------------------------------ */
 
 .table {
   width: 100%;
+  min-width: 0;
+
   overflow-x: auto;
+
+  -webkit-overflow-scrolling: touch;
 }
 
 .tr {
@@ -502,6 +4954,7 @@ header p {
     1.25fr;
 
   gap: 14px;
+
   align-items: center;
 
   min-width: 760px;
@@ -510,12 +4963,42 @@ header p {
 
   border-top: 1px solid #e5eaf2;
 
+  color: #33415c;
+
   font-size: 11px;
+}
+
+.tr span {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
 }
 
 .tr span:first-child b,
 .tr span:first-child small {
   display: block;
+}
+
+.tr .userAvatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+
+  border-radius: 50%;
+
+  object-fit: cover;
+
+  box-shadow: 0 3px 8px rgba(76, 56, 126, 0.16);
+}
+
+.tr .userIdentity {
+  min-width: 0;
+}
+
+.tr > span:first-child:not(.th span) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .tr small {
@@ -540,16 +5023,39 @@ header p {
   letter-spacing: 0.05em;
 }
 
-/* ============================================================
+.th span {
+  min-width: 0;
+}
+
+.tr:not(.th):hover {
+  background: #faf8fc;
+}
+
+.auditLogActionButtons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.auditLogViewButton {
+  min-width: 74px;
+}
+
+/* ------------------------------------------------------------
    STATUS BADGES
-   ============================================================ */
+   ------------------------------------------------------------ */
 
 .status {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+
   gap: 5px;
 
   width: fit-content;
+  max-width: 100%;
 
   padding: 5px 8px;
 
@@ -557,16 +5063,24 @@ header p {
 
   font-size: 9px;
   font-weight: 800;
+
+  line-height: 1.25;
+
+  white-space: normal;
+
+  overflow-wrap: anywhere;
 }
 
-.status.success {
-  background: #e9f7f0;
-  color: #1d8a5b;
+.status.success,
+.status.ok {
+  background: #eaf6f1;
+  color: #32866a;
 }
 
-.status.failed {
-  background: #fff0f2;
-  color: #c23b49;
+.status.failed,
+.status.bad {
+  background: #fff2f7;
+  color: #b24d7c;
 }
 
 .status.dry_run,
@@ -576,1594 +5090,300 @@ header p {
   color: #966d16;
 }
 
-/* ============================================================
-   REPOSITORY SUMMARY
-   ============================================================ */
-
-.repo {
-  padding: 12px 2px;
-}
-
-.repoIcon {
-  width: 42px;
-  height: 42px;
-
-  display: grid;
-  place-items: center;
-
-  margin-bottom: 12px;
-
-  border-radius: 10px;
-
-  background: #e8f0fc;
-  color: #2f5da8;
-}
-
-.repo > b {
-  display: block;
-
-  font-size: 14px;
-}
-
-.repo > span {
-  display: block;
-
-  margin-top: 5px;
-
-  color: #7183a1;
-  font-size: 11px;
-
-  word-break: break-word;
-}
-
-.repoRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 15px;
-
-  margin-top: 15px;
-  padding-top: 12px;
-
-  border-top: 1px solid #e5eaf2;
-
-  font-size: 11px;
-}
-
-.repoRow span {
-  color: #7183a1;
-}
-
-/* ============================================================
-   NOTICES
-   ============================================================ */
-
-.notice {
-  margin-bottom: 15px;
-  padding: 11px 13px;
-
-  border: 1px solid #d7e6ff;
-  border-radius: 9px;
-
-  background: #eef5ff;
-  color: #2d5d9f;
-
-  font-size: 12px;
-}
-
-.notice.success,
-.smtpNotice,
-.successNotice {
-  border-color: #cfe8d8;
-  background: #f1fbf4;
-  color: #1d8a5b;
-}
-
-/* ============================================================
-   EMPTY STATE
-   ============================================================ */
-
-.empty {
-  min-height: 180px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  padding: 38px;
-
-  text-align: center;
-
-  color: #8993a3;
-  font-size: 12px;
-}
-
-.empty b {
-  color: #596579;
-  font-size: 13px;
-}
-
-.empty span {
-  color: #929baa;
-  font-size: 11px;
-}
-
-/* ============================================================
-   REPOSITORY LIST
-   ============================================================ */
-
-.repositoryList {
-  display: grid;
-  gap: 12px;
-}
-
-.repoCard {
-  display: block;
-
-  padding: 15px 16px;
-
-  border: 1px solid #dfe6f0;
-  border-radius: 13px;
-
-  background: #fff;
-
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.repoCard:hover {
-  border-color: #cbdaf0;
-
-  box-shadow:
-    0 5px 16px rgba(16, 24, 40, 0.045);
-}
-
-.repoCard.selected {
-  border-color: #7d9fd2;
-
-  background: #fbfcff;
-
-  box-shadow:
-    0 0 0 2px rgba(37, 99, 235, 0.06);
-}
-
-.repoCardMain {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-
-  min-width: 0;
-}
-
-.repoCardMain .repoIcon {
-  flex-shrink: 0;
-  margin: 0;
-}
-
-.repoInfo {
-  min-width: 0;
-  flex: 1;
-}
-
-.repoTitle {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.repoInfo b,
-.repoTitle b {
-  color: #172033;
-
-  font-size: 14px;
-  line-height: 1.3;
-}
-
-.repoInfo p {
-  margin: 4px 0 0;
-
-  color: #7183a1;
-
-  font-size: 10px;
-  line-height: 1.4;
-}
-
-.repoPath {
-  display: block;
-
-  margin-top: 5px;
-
-  color: #73839f;
-
-  font-size: 10px;
-  line-height: 1.35;
-
-  word-break: break-all;
-}
-
-.selectedBadge {
-  padding: 4px 7px;
-
-  border-radius: 999px;
-
-  background: #e7effc;
-  color: #2f5da8;
-
-  font-size: 8px;
-  font-weight: 800;
-
-  text-transform: uppercase;
-}
-
-/* ============================================================
-   REPOSITORY META
-   ============================================================ */
-
-.repoMeta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-
-  margin: 11px 0 10px 54px;
-}
-
-.repoMeta > span {
-  min-height: 29px;
-
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-
-  padding: 5px 8px;
-
-  border: 1px solid #e1e8f2;
-  border-radius: 7px;
-
-  background: #f6f8fb;
-  color: #6c7d9a;
-
-  font-size: 9px;
-  font-weight: 700;
-
-  white-space: nowrap;
-}
-
-.connectionBadge {
-  border-radius: 999px !important;
-}
-
-.connectionBadge.connected {
-  border-color: #ccebdc !important;
-
-  background: #e9f7f0 !important;
-  color: #1d8a5b !important;
-}
-
-.connectionBadge.failed {
-  border-color: #efcfd4 !important;
-
-  background: #fff0f2 !important;
-  color: #c23b49 !important;
-}
-
-.connectionBadge.unknown {
-  background: #fff7e5 !important;
-  color: #966d16 !important;
-}
-
-/* ============================================================
-   REPOSITORY ACTIONS
-   ============================================================ */
-
-.repoActions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px;
-
-  padding-top: 10px;
-
-  border-top: 1px solid #e5eaf2;
-}
-
-.repoActions .ghost,
-.repoActions .danger {
-  min-height: 34px;
-  padding: 7px 10px;
-}
-
-/* ============================================================
-   DELIVERY SELECTOR
-   ============================================================ */
-
-.deliverySelector {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-
-  padding: 12px 14px;
-  margin-bottom: 14px;
-
-  border: 1px solid #e3e9f2;
-  border-radius: 10px;
-
-  background: #f4f7fb;
-}
-
-.deliverySelector b,
-.deliverySelector span {
-  display: block;
-}
-
-.deliverySelector b {
-  color: #33415c;
-  font-size: 11px;
-}
-
-.deliverySelector span {
-  margin-top: 3px;
-
-  color: #8a94a5;
-  font-size: 10px;
-}
-
-.deliverySelector select {
-  min-width: 220px;
-
-  padding: 9px 11px;
-
-  border: 1px solid #d6dfed;
-  border-radius: 8px;
-
-  background: #fff;
-  color: #33415c;
-
-  font-size: 11px;
-
-  cursor: pointer;
-}
-
-.deliverySelector select:focus {
-  border-color: #7399cf;
-
-  box-shadow:
-    0 0 0 3px rgba(37, 99, 235, 0.08);
-}
-
-/* ============================================================
-   SETTINGS
-   ============================================================ */
-
-.settings {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.settings label {
-  color: #6e7889;
-
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.settings input {
-  display: block;
-
-  width: 100%;
-
-  margin-top: 7px;
-  padding: 11px;
-
-  border: 1px solid #d6dfed;
-  border-radius: 8px;
-
-  background: #f6f8fb;
-  color: #273449;
-}
-
-/* ============================================================
-   MODAL
-   ============================================================ */
-
-.modalOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 18px;
-
-  overflow-y: auto;
-
-  background: rgba(15, 23, 42, 0.48);
-}
-
-.modal {
-  width: min(860px, calc(100vw - 36px));
-  max-height: min(900px, calc(100vh - 36px));
-
-  overflow-x: hidden;
-  overflow-y: auto;
-
-  border: 1px solid #dce4ef;
-  border-radius: 16px;
-
-  background: #fff;
-
-  box-shadow:
-    0 25px 60px rgba(15, 23, 42, 0.18),
-    0 8px 24px rgba(15, 23, 42, 0.08);
-}
-
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 15px;
-
-  padding: 20px 22px 16px;
-
-  border-bottom: 1px solid #e5eaf2;
-}
-
-.modalHeader h2 {
-  margin: 5px 0 4px;
-
-  color: #172033;
-
-  font-size: 21px;
-  line-height: 1.25;
-
-  letter-spacing: -0.02em;
-}
-
-.modalHeader span {
-  display: block;
-
-  margin-top: 3px;
-
-  color: #7183a1;
-
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.modal form {
-  padding: 18px 22px 22px;
-}
-
-/* ============================================================
-   FORM
-   ============================================================ */
-
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 14px;
-  row-gap: 12px;
-}
+/* ------------------------------------------------------------
+   FORM CONTROLS
+   ------------------------------------------------------------ */
 
 .formField {
   min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.formField.full {
-  grid-column: 1 / -1;
 }
 
 .formField label {
   display: block;
 
-  color: #445574;
+  margin-bottom: 6px;
+
+  color: #54485f;
 
   font-size: 11px;
-  font-weight: 800;
-  line-height: 1.35;
+  font-weight: 700;
+
+  overflow-wrap: anywhere;
 }
 
 .formField input,
 .formField select,
 .formField textarea {
   width: 100%;
+  max-width: 100%;
+
   min-width: 0;
-  min-height: 38px;
 
-  padding: 10px 11px;
+  border: 1px solid #ded7e8;
+  border-radius: 9px;
 
-  border: 1px solid #d8dfe9;
-  border-radius: 8px;
-
-  background: #fff;
-  color: #273449;
+  background: #ffffff;
+  color: #27213a;
 
   font-size: 12px;
-  line-height: 1.35;
 
-  resize: vertical;
+  line-height: 1.5;
 }
 
-.formField input::placeholder,
-.formField textarea::placeholder {
-  color: #98a6bd;
+.formField input,
+.formField select {
+  min-height: 38px;
+
+  padding: 8px 10px;
+}
+
+.formField textarea {
+  min-height: 90px;
+
+  padding: 9px 10px;
+
+  resize: vertical;
 }
 
 .formField input:focus,
 .formField select:focus,
 .formField textarea:focus {
-  border-color: #7399cf;
+  outline: none;
+
+  border-color: #7557b8;
 
   box-shadow:
-    0 0 0 3px rgba(37, 99, 235, 0.08);
+    0 0 0 3px rgba(117, 87, 184, 0.10);
 }
 
-.formField input:disabled,
-.formField select:disabled,
-.formField textarea:disabled {
-  background: #f1f4f8;
-  cursor: not-allowed;
+/* ------------------------------------------------------------
+   BUTTON SAFETY
+   ------------------------------------------------------------ */
+
+.primary,
+.ghost,
+.danger {
+  min-width: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  line-height: 1.35;
+
+  white-space: normal;
+
+  cursor: pointer;
 }
 
-.formSectionTitle {
+.primary {
+  border-color: #7557b8;
+  background: #7557b8;
+  color: #ffffff;
+}
+
+.primary:hover:not(:disabled) {
+  background: #62439e;
+  border-color: #62439e;
+}
+
+.ghost {
+  border: 1px solid #ded7e8;
+
+  background: #ffffff;
+  color: #4b405f;
+}
+
+.ghost:hover:not(:disabled) {
+  background: #f7f3f9;
+  border-color: #d6cde0;
+}
+
+.danger {
+  border: 1px solid #efc9d5;
+
+  background: #ffffff;
+  color: #b24d7c;
+}
+
+.danger:hover:not(:disabled) {
+  background: #fff5f8;
+  border-color: #e7b5c5;
+}
+
+.small {
+  min-height: 34px;
+
+  padding: 7px 10px;
+
+  font-size: 11px;
+}
+
+/* ------------------------------------------------------------
+   MODALS / DRAWERS
+   ------------------------------------------------------------ */
+
+.modalOverlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+
+  align-items: stretch;
+  justify-content: flex-end;
+
+  background: rgba(18, 35, 70, 0.52);
+}
+
+.modal,
+.modalCard,
+.drawer {
+  min-width: 0;
+}
+
+.modalHeader {
+  min-width: 0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 16px;
+}
+
+.modalHeader > div:first-child {
+  min-width: 0;
+
+  flex: 1 1 auto;
+}
+
+.modalHeader h2,
+.modalHeader span {
+  overflow-wrap: anywhere;
+}
+
+.modalFooter {
+  min-width: 0;
+
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
 
-  margin: 20px 0 11px;
+  gap: 10px;
 
-  color: #172033;
-
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.35;
+  flex-wrap: wrap;
 }
 
-.formSectionTitle svg {
-  flex-shrink: 0;
-  color: #2f5da8;
+.modalFooter button {
+  min-width: 0;
 }
 
-.hint,
-.helperText,
-.fieldHelperText {
-  display: block;
+/* ------------------------------------------------------------
+   REPOSITORY WIZARD
+   ------------------------------------------------------------ */
 
-  margin-top: 4px;
+.formGrid {
+  display: grid;
 
-  color: #7183a1;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
 
-  font-size: 10px;
-  line-height: 1.45;
-}
+  gap: 14px;
 
-/* ============================================================
-   TARGET SECTION
-   ============================================================ */
-
-.targetHint {
-  margin-bottom: 13px;
-  padding: 10px 12px;
-
-  border: 1px solid #dfe6ef;
-  border-radius: 8px;
-
-  background: #f4f7fb;
-  color: #687b9b;
-
-  font-size: 10px;
-  line-height: 1.5;
-}
-
-.targetHint b {
-  color: #33415c;
-
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
+  min-width: 0;
 }
 
 .targetListHeader {
+  min-width: 0;
+
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  gap: 14px;
+  align-items: flex-start;
 
-  margin: 6px 0 9px;
+  gap: 12px;
 }
 
 .targetListHeader > div:first-child {
   min-width: 0;
+
+  flex: 1 1 auto;
 }
 
-.targetListHeader b {
-  display: block;
-
-  color: #273449;
-
-  font-size: 12px;
-  line-height: 1.35;
-}
-
+.targetListHeader b,
 .targetListHeader span {
-  display: block;
-
-  max-width: 560px;
-
-  margin-top: 4px;
-
-  color: #7183a1;
-
-  font-size: 10px;
-  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
-.targetListHeader .ghost.small {
-  flex-shrink: 0;
-
-  min-height: 34px;
-
-  white-space: nowrap;
-}
-
-.targetList {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-
-  padding: 7px;
-
-  border: 1px solid #dce4ef;
-  border-radius: 10px;
-
-  background: #f6f8fc;
-}
-
-.targetRow {
-  display: grid !important;
-
-  grid-template-columns:
-    30px
-    minmax(0, 1fr)
-    minmax(0, 0.82fr)
-    34px !important;
-
-  align-items: end;
-
-  gap: 8px;
-
-  min-width: 0;
-
-  padding: 7px;
-
-  border: 1px solid #e1e7f0;
-  border-radius: 9px;
-
-  background: #fff;
-}
-
-.targetRow .formField {
-  min-width: 0;
-}
-
-.targetRow .formField input {
-  min-width: 0;
-  width: 100%;
-}
-
-.targetRowNumber {
-  width: 30px !important;
-  height: 36px !important;
-
-  align-self: end;
-
-  display: grid !important;
-  place-items: center;
-
-  border: 1px solid #d6dfed;
-  border-radius: 8px;
-
-  background: #eef2f8;
-  color: #526887;
-
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.targetRemoveButton {
-  width: 34px !important;
-  height: 36px !important;
-
-  align-self: end;
-}
-
-.targetRemoveButton:hover:not(:disabled) {
-  border-color: #efc4c9;
-
-  background: #fff5f6;
-  color: #c23b49;
-}
-
-/* ============================================================
-   RECIPIENTS
-   ============================================================ */
-
-.sectionTitleWithAction {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sectionTitleWithAction > span {
-  flex: 1;
-  min-width: 0;
-}
-
-.sectionAddButton {
-  flex-shrink: 0;
-
-  min-height: 34px;
-
-  white-space: nowrap;
-}
-
-.recipientField {
-  min-width: 0;
-}
-
-.recipientInputRow {
-  display: flex;
-  align-items: stretch;
-  gap: 7px;
-
-  min-width: 0;
-}
-
-.recipientInputRow input {
-  flex: 1;
-  min-width: 0;
-}
-
-.recipientAddButton {
-  width: 36px !important;
-  height: 36px !important;
-  min-height: 36px !important;
-
-  flex: 0 0 36px;
-
-  padding: 0 !important;
-}
-
-.recipientListInput {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-
-  margin-top: 7px;
-}
-
-.recipientChip,
 .recipientRow {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-
-  max-width: 100%;
-
-  padding: 5px 7px 5px 9px;
-
-  border: 1px solid #d5dfec;
-  border-radius: 999px;
-
-  background: #eef2f8;
-  color: #33415c;
-
-  font-size: 11px;
-  line-height: 1.2;
-}
-
-.recipientChip > span,
-.recipientRow > span {
   min-width: 0;
 
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recipientChip button,
-.recipientRemoveButton {
-  display: grid;
-  place-items: center;
-
-  width: 20px;
-  height: 20px;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 50%;
-
-  background: transparent;
-  color: #7183a1;
-
-  cursor: pointer;
-}
-
-.recipientChip button:hover:not(:disabled),
-.recipientRemoveButton:hover:not(:disabled) {
-  background: #edf2f8;
-  color: #c23b49;
-}
-
-/* ============================================================
-   SMTP NOTICE
-   ============================================================ */
-
-.smtpNotice {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-
-  margin-top: 14px;
-  padding: 11px 12px;
-
-  border: 1px solid #cfe8d8;
-  border-radius: 8px;
-
-  background: #f1fbf4;
-  color: #1d8a5b;
-
-  font-size: 10px;
-  line-height: 1.5;
-}
-
-.smtpNotice svg {
-  flex-shrink: 0;
-}
-
-/* ============================================================
-   CONNECTION RESULT
-   ============================================================ */
-
-.connectionResult {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-
-  margin-top: 15px;
-  padding: 12px 13px;
-
-  border-radius: 9px;
-}
-
-.connectionResult > div {
-  min-width: 0;
-}
-
-.connectionResult b,
-.connectionResult span {
-  display: block;
-}
-
-.connectionResult b {
-  font-size: 11px;
-}
-
-.connectionResult span {
-  margin-top: 4px;
-
-  font-size: 10px;
-  line-height: 1.5;
-}
-
-.connectionResult.success {
-  border: 1px solid #cfe8d8;
-
-  background: #f1fbf4;
-  color: #1d8a5b;
-}
-
-.connectionResult.failed {
-  border: 1px solid #efc9cf;
-
-  background: #fff5f5;
-  color: #c23b49;
-}
-
-/* ============================================================
-   MODAL FOOTER
-   ============================================================ */
-
-.modalFooter {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 9px;
-
-  margin-top: 22px;
-  padding-top: 18px;
-
-  border-top: 1px solid #e5eaf2;
-}
-
-.modalFooter button {
-  min-height: 38px;
-}
-
-/* ============================================================
-   DELIVERY RESULT MODAL
-   ============================================================ */
-
-.deliveryModal {
-  width: min(820px, calc(100vw - 36px));
-  max-height: min(900px, calc(100vh - 36px));
-
-  overflow-y: auto;
-
-  border: 1px solid #dce4ef;
-  border-radius: 16px;
-
-  background: #fff;
-
-  box-shadow:
-    0 25px 60px rgba(15, 23, 42, 0.18),
-    0 8px 24px rgba(15, 23, 42, 0.08);
-}
-
-.deliveryResultHeader {
-  display: flex;
-  align-items: flex-start;
-  gap: 13px;
-
-  padding: 22px;
-
-  border-bottom: 1px solid #e5eaf2;
-}
-
-.resultIcon {
-  width: 46px;
-  height: 46px;
-
-  display: grid;
-  place-items: center;
-
-  flex-shrink: 0;
-
-  border-radius: 12px;
-}
-
-.resultIcon.success {
-  background: #e9f7f0;
-  color: #1d8a5b;
-}
-
-.resultIcon.failed {
-  background: #fff0f2;
-  color: #c23b49;
-}
-
-.resultHeaderText {
-  flex: 1;
-  min-width: 0;
-}
-
-.resultHeaderText h2 {
-  margin: 4px 0;
-
-  font-size: 20px;
-  line-height: 1.25;
-
-  letter-spacing: -0.02em;
-}
-
-.resultHeaderText span {
-  color: #7183a1;
-  font-size: 11px;
-}
-
-.jobReference {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
-
-  margin: 18px 22px 0;
-  padding: 11px 13px;
-
-  border: 1px solid #d8e3f1;
-  border-radius: 9px;
-
-  background: #f3f7fd;
-}
-
-.jobReference span {
-  color: #7183a1;
-
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.jobReference strong {
-  color: #2d5d9f;
-
-  font-size: 11px;
-
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
-}
-
-.deliveryError {
-  display: flex;
-  gap: 10px;
-
-  margin: 15px 22px 0;
-  padding: 13px;
-
-  border: 1px solid #efc9cf;
-  border-radius: 9px;
-
-  background: #fff5f5;
-  color: #c23b49;
-}
-
-.deliveryError b,
-.deliveryError span {
-  display: block;
-}
-
-.deliveryError b {
-  font-size: 11px;
-}
-
-.deliveryError span {
-  margin-top: 4px;
-
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.resultGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 11px;
-
-  padding: 16px 22px;
-}
-
-.resultItem {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-
-  min-width: 0;
-
-  padding: 12px;
-
-  border: 1px solid #e5eaf2;
-  border-radius: 9px;
-
-  background: #fafbfd;
-}
-
-.resultItemIcon {
-  width: 30px;
-  height: 30px;
-
-  display: grid;
-  place-items: center;
-
-  flex-shrink: 0;
-
-  border-radius: 7px;
-
-  background: #e8f0fc;
-  color: #2f5da8;
-}
-
-.resultItem span,
-.resultItem strong {
-  display: block;
-}
-
-.resultItem span {
-  color: #8191ad;
-
-  font-size: 9px;
-  font-weight: 700;
-
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.resultItem strong {
-  margin-top: 4px;
-
-  color: #273449;
-
-  font-size: 11px;
-
-  word-break: break-word;
-}
-
-.resultMono {
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
-}
-
-.recipientsBlock {
-  margin: 0 22px;
-  padding: 14px 0;
-
-  border-top: 1px solid #e5eaf2;
-}
-
-.recipientTitle {
   display: flex;
   align-items: center;
-  gap: 7px;
 
-  color: #33415c;
-
-  font-size: 11px;
-}
-
-.recipientList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-
-  margin-top: 9px;
-}
-
-.recipientList span {
-  padding: 5px 8px;
-
-  border-radius: 6px;
-
-  background: #f1f4f8;
-  color: #6c7d97;
-
-  font-size: 9px;
-}
-
-.deliveryModalFooter {
-  display: flex;
-  justify-content: flex-end;
   gap: 8px;
-
-  padding: 17px 22px 20px;
-
-  border-top: 1px solid #e5eaf2;
 }
 
-/* ============================================================
-   DELIVERY HISTORY
-   ============================================================ */
-
-.historyPanel {
-  padding: 20px;
+.recipientRow input {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.historyHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-
-  margin-bottom: 18px;
-}
-
-.historyHeader h2 {
-  margin: 5px 0 4px;
-
-  font-size: 19px;
-  line-height: 1.3;
-
-  letter-spacing: -0.02em;
-}
-
-.historyHeader > div > span {
-  display: block;
-
-  color: #7183a1;
-
-  font-size: 12px;
-}
-
-/* ============================================================
-   HISTORY SUMMARY
-   ============================================================ */
-
-.historySummary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-
-  margin-bottom: 17px;
-}
-
-.historyStat {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  padding: 14px;
-
-  border: 1px solid #e1e8f2;
-  border-radius: 10px;
-
-  background: #fafbfd;
-}
-
-.historyStatIcon {
-  width: 34px;
-  height: 34px;
-
-  display: grid;
-  place-items: center;
-
-  flex-shrink: 0;
-
-  border-radius: 9px;
-
-  background: #e8eef8;
-  color: #5278b8;
-}
-
-.historyStatIcon.success {
-  background: #e9f7f0;
-  color: #1f9d68;
-}
-
-.historyStatIcon.failed {
-  background: #fff0f2;
-  color: #cf4654;
-}
-
-.historyStat span {
-  display: block;
-
-  color: #7183a1;
-
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.historyStat strong {
-  display: block;
-
-  margin-top: 3px;
-
-  font-size: 20px;
-  line-height: 1;
-}
-
-/* ============================================================
-   HISTORY FILTERS
-   ============================================================ */
-
-.historyFilters {
-  display: grid;
-  grid-template-columns:
-    minmax(280px, 1fr)
-    180px
-    220px;
-
-  gap: 10px;
-
-  margin-bottom: 15px;
-}
-
-.historySearch,
-.historyFilterField {
-  height: 40px;
-
-  display: flex;
-  align-items: center;
-  gap: 9px;
-
-  padding: 0 12px;
-
-  border: 1px solid #d6dfed;
-  border-radius: 8px;
-
-  background: #fff;
-  color: #788498;
-}
-
-.historySearch:focus-within,
-.historyFilterField:focus-within {
-  border-color: #8eb4f5;
-
-  box-shadow:
-    0 0 0 3px rgba(37, 99, 235, 0.08);
-}
-
-.historySearch input {
-  width: 100%;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-  color: #273449;
-
-  font-size: 11px;
-}
-
-.historySearch input::placeholder {
-  color: #9aa4b3;
-}
-
-.historyFilterField select {
-  width: 100%;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-  color: #33415c;
-
-  font-size: 11px;
-
-  cursor: pointer;
-}
-
-.clearSearch {
-  display: grid;
-  place-items: center;
-
-  padding: 2px;
-
-  border: 0;
-  background: transparent;
-
-  color: #9aa4b3;
-
-  cursor: pointer;
-}
-
-.clearSearch:hover {
-  color: #33415c;
-}
-
-/* ============================================================
-   HISTORY RESULTS HEADER
-   ============================================================ */
-
-.historyResultsInfo {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  margin-bottom: 10px;
-}
-
-.historyResultsInfo > div {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.historyResultsInfo b {
-  color: #273449;
-  font-size: 12px;
-}
-
-.historyResultsInfo span {
-  color: #8a94a5;
-  font-size: 10px;
-}
-
-/* ============================================================
-   HISTORY TABLE
-   ============================================================ */
-
-.historyTable {
-  width: 100%;
-
-  overflow-x: auto;
-
-  border: 1px solid #e1e8f2;
-  border-radius: 10px;
-
-  background: #fff;
-}
-
-.historyRow {
-  display: grid;
-
-  grid-template-columns:
-    1.35fr
-    1.25fr
-    1fr
-    0.85fr
-    0.55fr
-    1fr
-    0.65fr;
-
-  gap: 13px;
-
-  align-items: center;
-
-  min-width: 1050px;
-
-  padding: 12px 14px;
-
-  border-top: 1px solid #e5eaf2;
-}
-
-.historyRow:first-child {
-  border-top: 0;
-}
-
-.historyRow:not(.historyHead):hover {
-  background: #fafcff;
-}
-
-.historyHead {
-  background: #f4f7fb;
-
-  color: #8191ad;
-
-  font-size: 9px;
-  font-weight: 800;
-
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.historyRow > span {
+.recipientChip {
   min-width: 0;
 
-  color: #33415c;
-  font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
-.historyRow > span b {
-  display: block;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.historyRow > span small {
-  display: block;
-
-  margin-top: 4px;
-
-  overflow: hidden;
-
-  color: #929baa;
-
-  font-size: 9px;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.jobReferenceText {
-  color: #245fc1;
-
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
-
-  font-size: 10px;
-}
-
-.createdText {
-  font-weight: 600;
-}
-
-.targetCell {
-  display: flex !important;
-  align-items: center;
-  gap: 5px;
-}
-
-.targetCell svg {
-  flex-shrink: 0;
-  color: #5b7fbd;
-}
-
-/* ============================================================
-   HISTORY VIEW BUTTON
-   ============================================================ */
-
-.viewButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-
-  padding: 6px 9px;
-
-  border: 1px solid #d6dfed;
-  border-radius: 7px;
-
-  background: #fff;
-  color: #315f9e;
-
-  font-size: 10px;
-  font-weight: 700;
-
-  cursor: pointer;
-}
-
-.viewButton:hover {
-  border-color: #c8dcfb;
-  background: #eef5ff;
-}
-
-/* ============================================================
+/* ------------------------------------------------------------
    HISTORY PAGINATION
-   ============================================================ */
+   ------------------------------------------------------------ */
 
 .historyPagination {
+  width: 100%;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  gap: 12px;
 
   padding-top: 15px;
 }
 
 .historyPagination > span {
   color: #7183a1;
+
   font-size: 10px;
+
+  overflow-wrap: anywhere;
 }
 
 .historyPagination > div {
   display: flex;
+
   gap: 7px;
 }
 
 .paginationButton {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+
   gap: 5px;
+
+  min-width: 0;
 
   padding: 7px 10px;
 
   border: 1px solid #d6dfed;
   border-radius: 7px;
 
-  background: #fff;
+  background: #ffffff;
   color: #33415c;
 
   font-size: 10px;
@@ -2174,1490 +5394,91 @@ header p {
 
 .paginationButton:hover:not(:disabled) {
   border-color: #cbd5e1;
+
   background: #f5f8fc;
 }
 
-/* ============================================================
-   HISTORY EMPTY
-   ============================================================ */
+.paginationButton:disabled {
+  opacity: 0.5;
 
-.historyEmpty {
-  min-height: 280px;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------
+   EMPTY STATES
+   ------------------------------------------------------------ */
+
+.empty {
+  min-width: 0;
+
+  min-height: 240px;
 
   display: flex;
+
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
+
   gap: 8px;
-
-  border: 1px dashed #d6dfed;
-  border-radius: 10px;
-
-  color: #9aa4b3;
-}
-
-.historyEmpty svg {
-  margin-bottom: 5px;
-  color: #a0aec1;
-}
-
-.historyEmpty b {
-  color: #596579;
-  font-size: 13px;
-}
-
-.historyEmpty span {
-  font-size: 11px;
-}
-
-/* ============================================================
-   LOGIN PAGE
-   ============================================================ */
-
-.login-page {
-  width: 100%;
-  min-height: 100vh;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
 
   padding: 24px;
 
-  background: #eef2f8;
-}
+  color: #9aa4b3;
 
-.login-card {
-  width: 100%;
-  max-width: 420px;
-
-  padding: 36px;
-
-  border: 1px solid #dfe5ee;
-  border-radius: 16px;
-
-  background: #fff;
-
-  box-shadow:
-    0 20px 45px rgba(15, 23, 42, 0.08);
-}
-
-.login-header {
-  margin-bottom: 30px;
   text-align: center;
 }
 
-.login-logo {
-  width: 56px;
-  height: 56px;
+.empty b,
+.empty span {
+  max-width: 100%;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin: 0 auto 16px;
-
-  border-radius: 14px;
-
-  background: #2f5da8;
-  color: #fff;
-
-  font-size: 20px;
-  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
-.login-header h1 {
-  margin: 0;
+/* ------------------------------------------------------------
+   LANGUAGE-SAFE TEXT
+   ------------------------------------------------------------ */
 
-  color: #172033;
-
-  font-size: 24px;
-  line-height: 1.3;
+nav button,
+.logo,
+.sideBottom,
+header,
+.panelHead,
+.actions,
+.stat,
+.repoTitle,
+.repoInfo,
+.repoMeta,
+.repoActions,
+.deliverySelector,
+.formField,
+.formSectionTitle,
+.targetListHeader,
+.modalHeader,
+.modalFooter,
+.historyPagination {
+  min-width: 0;
 }
 
-.login-header p {
-  margin: 8px 0 0;
+nav button,
+.actions button,
+.primary,
+.ghost,
+.danger,
+.repoActions button,
+.modalFooter button {
+  overflow-wrap: anywhere;
 
-  color: #687b9b;
+  word-break: normal;
 
-  font-size: 14px;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.form-group label {
-  color: #34445f;
-
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.form-group input {
-  width: 100%;
-  height: 44px;
-
-  padding: 0 13px;
-
-  border: 1px solid #d4deeb;
-  border-radius: 9px;
-
-  background: #fff;
-  color: #172033;
-
-  font-size: 14px;
-}
-
-.form-group input:focus {
-  border-color: #2f5da8;
-
-  box-shadow:
-    0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-
-.form-group input:disabled {
-  background: #f0f3f8;
-}
-
-.login-error {
-  padding: 11px 13px;
-
-  border: 1px solid #f1c7ce;
-  border-radius: 8px;
-
-  background: #fff3f5;
-  color: #b73545;
-
-  font-size: 13px;
   line-height: 1.4;
 }
 
-.login-button {
-  width: 100%;
-  height: 46px;
-
-  border: 0;
-  border-radius: 9px;
-
-  background: #2f5da8;
-  color: #fff;
-
-  font-size: 15px;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-.login-button:hover:not(:disabled) {
-  background: #254b8c;
-}
-
-.login-button:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.login-footer {
-  margin-top: 26px;
-
-  color: #8290a8;
-
-  font-size: 12px;
-
-  text-align: center;
-}
-
-/* ============================================================
-   AUTH LOADING
-   ============================================================ */
-
-.auth-loading {
-  min-height: 100vh;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: #eef2f8;
-  color: #34445f;
-
-  font-size: 15px;
-  font-weight: 500;
-}
-
-/* ============================================================
-   USER AREA
-   ============================================================ */
-
-.user-area {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.user-info strong {
-  color: #172033;
-  font-size: 13px;
-}
-
-.user-info span {
-  color: #687b9b;
-
-  font-size: 11px;
-  font-weight: 600;
-
-  text-transform: uppercase;
-}
-
-.logout-button {
-  padding: 7px 12px;
-
-  border: 1px solid #dfe5ee;
-  border-radius: 7px;
-
-  background: #fff;
-  color: #34445f;
-
-  font-size: 13px;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-.logout-button:hover {
-  border-color: #d4deeb;
-  background: #f9fafb;
-}
-
-/* ============================================================
-   SCROLLBARS
-   ============================================================ */
-
-.modal::-webkit-scrollbar,
-.deliveryModal::-webkit-scrollbar {
-  width: 7px;
-}
-
-.modal::-webkit-scrollbar-track,
-.deliveryModal::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.modal::-webkit-scrollbar-thumb,
-.deliveryModal::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: #cbd6e5;
-}
-
-.modal::-webkit-scrollbar-thumb:hover,
-.deliveryModal::-webkit-scrollbar-thumb:hover {
-  background: #aebdd1;
-}
-
-/* ============================================================
-   RESPONSIVE — LARGE TABLET
-   ============================================================ */
-
-@media (max-width: 1100px) {
-  aside {
-    width: 210px;
-  }
-
-  main {
-    padding: 26px 28px;
-  }
-
-  .cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
-  .repoMeta {
-    margin-left: 0;
-  }
-
-  .repoActions {
-    justify-content: flex-start;
-  }
-
-  .historySummary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .historyFilters {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .historySearch {
-    grid-column: 1 / -1;
-  }
-}
-
-/* ============================================================
-   RESPONSIVE — TABLET
-   ============================================================ */
-
-@media (max-width: 800px) {
-  main {
-    padding: 22px;
-  }
-
-  header {
-    align-items: flex-start;
-  }
-
-  .formGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .formField.full {
-    grid-column: auto;
-  }
-
-  .settings {
-    grid-template-columns: 1fr;
-  }
-
-  .deliverySelector {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .deliverySelector select {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .historyHeader {
-    display: block;
-  }
-
-  .historyFilters {
-    grid-template-columns: 1fr;
-  }
-
-  .historySearch {
-    grid-column: auto;
-  }
-
-  .repoMeta {
-    margin-left: 0;
-  }
-
-  .repoActions {
-    justify-content: flex-start;
-  }
-
-  .modalOverlay {
-    align-items: flex-start;
-    padding: 12px;
-  }
-
-  .modal,
-  .deliveryModal {
-    width: 100%;
-    max-height: calc(100vh - 24px);
-    border-radius: 13px;
-  }
-
-  .targetListHeader {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .targetListHeader .ghost.small {
-    align-self: flex-end;
-  }
-}
-
-/* ============================================================
-   RESPONSIVE — MOBILE
-   ============================================================ */
-
-@media (max-width: 650px) {
-  aside {
-    display: none;
-  }
-
-  main {
-    padding: 17px;
-  }
-
-  header {
-    display: block;
-  }
-
-  .actions {
-    margin-top: 13px;
-  }
-
-  .actions button {
-    flex: 1;
-    justify-content: center;
-  }
-
-  .repoCard {
-    padding: 13px;
-  }
-
-  .repoMeta {
-    gap: 5px;
-    margin-top: 9px;
-    margin-bottom: 9px;
-  }
-
-  .repoMeta > span {
-    padding: 5px 7px;
-    font-size: 8px;
-  }
-
-  .repoActions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .repoActions button {
-    flex: 0 1 auto;
-  }
-
-  .modalHeader,
-  .modal form {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .targetRow {
-    grid-template-columns:
-      28px
-      minmax(0, 1fr)
-      34px !important;
-  }
-
-  .targetRow .formField:nth-child(3) {
-    grid-column: 2 / 3;
-  }
-
-  .targetRow .targetRemoveButton {
-    grid-column: 3;
-    grid-row: 1 / span 2;
-  }
-
-  .recipientInputRow {
-    flex-direction: row;
-  }
-
-  .recipientAddButton {
-    width: 36px !important;
-  }
-
-  .resultGrid {
-    grid-template-columns: 1fr;
-
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .deliveryResultHeader {
-    padding: 17px;
-  }
-
-  .jobReference {
-    margin-left: 17px;
-    margin-right: 17px;
-  }
-
-  .deliveryError {
-    margin-left: 17px;
-    margin-right: 17px;
-  }
-
-  .recipientsBlock {
-    margin-left: 17px;
-    margin-right: 17px;
-  }
-
-  .deliveryModalFooter {
-    padding-left: 17px;
-    padding-right: 17px;
-  }
-
-  .historySummary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .historyResultsInfo {
-    display: block;
-  }
-
-  .historyResultsInfo .link {
-    margin-top: 8px;
-  }
-
-  .historyPagination {
-    display: block;
-  }
-
-  .historyPagination > div {
-    margin-top: 10px;
-  }
-
-  .login-page {
-    padding: 16px;
-  }
-
-  .login-card {
-    padding: 26px 20px;
-    border-radius: 12px;
-  }
-
-  .login-header h1 {
-    font-size: 21px;
-  }
-}
-
-/* ============================================================
-   RESPONSIVE — SMALL MOBILE
-   ============================================================ */
-
-@media (max-width: 480px) {
-  main {
-    padding: 14px;
-  }
-
-  .cards {
-    grid-template-columns: 1fr;
-  }
-
-  .historySummary {
-    grid-template-columns: 1fr;
-  }
-
-  .modalOverlay {
-    padding: 7px;
-  }
-
-  .modal,
-  .deliveryModal {
-    max-height: calc(100vh - 14px);
-  }
-
-  .repoActions {
-    width: 100%;
-  }
-
-  .repoActions button {
-    flex: 1 1 auto;
-  }
-
-  .targetList {
-    padding: 7px;
-  }
-
-  .targetRow {
-    grid-template-columns:
-      28px
-      minmax(0, 1fr) !important;
-
-    gap: 8px;
-  }
-
-  .targetRowNumber {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .targetRow .formField {
-    grid-column: 2;
-  }
-
-  .targetRow .formField:nth-child(3) {
-    grid-column: 2;
-  }
-
-  .targetRow .targetRemoveButton {
-    grid-column: 2;
-
-    justify-self: end;
-
-    margin-top: -4px;
-  }
-
-  .modalFooter {
-    justify-content: stretch;
-  }
-
-  .modalFooter button {
-    flex: 1 1 auto;
-    justify-content: center;
-  }
-
-  .recipientInputRow {
-    flex-direction: column;
-  }
-
-  .recipientAddButton {
-    width: 100% !important;
-  }
-}
-
-
-/* ============================================================
-   PROFILE + SIDEBAR ACCOUNT ACTIONS
-   ============================================================ */
-
-/* The Profile and Sign out controls live in the sidebar. */
-aside > div:not(.logo):not(.sideBottom) {
-  margin-top: 8px !important;
-  padding-top: 8px !important;
-  border-top: 1px solid rgba(148, 163, 184, 0.14) !important;
-}
-
-aside > div:not(.logo):not(.sideBottom) > button {
-  width: 100% !important;
-
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-
-  min-height: 40px !important;
-  padding: 11px 12px !important;
-
-  border: 0 !important;
-  border-radius: 9px !important;
-
-  background: transparent !important;
-  color: #b7c5dd !important;
-
-  font-size: 13px !important;
-  font-weight: 600 !important;
-
-  text-align: left !important;
-  cursor: pointer !important;
-}
-
-aside > div:not(.logo):not(.sideBottom) > button:hover:not(:disabled) {
-  background: #243e73 !important;
-  color: #ffffff !important;
-}
-
-aside > div:not(.logo):not(.sideBottom) > button:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-/* Profile page */
-.profileCard {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-
-  margin-top: 6px;
-  padding: 22px;
-
-  border: 1px solid #dfe6f0;
-  border-radius: 14px;
-
-  background: #fff;
-
-  box-shadow:
-    0 4px 18px rgba(16, 24, 40, 0.045);
-}
-
-.profileAvatar {
-  width: 76px;
-  height: 76px;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 18px;
-
-  background: #2f5da8;
-  color: #fff;
-
-  font-size: 25px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-}
-
-.profileIdentity h3 {
-  margin: 0;
-
-  color: #172033;
-  font-size: 20px;
-  line-height: 1.25;
-}
-
-.profileIdentity > span {
-  display: block;
-  margin-top: 5px;
-
-  color: #7183a1;
-  font-size: 12px;
-}
-
-.profileRole {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-
-  margin-top: 12px;
-  padding: 6px 9px;
-
-  border-radius: 999px;
-
-  background: #e8eef8;
-  color: #315f9e;
-
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.profileSecurity {
-  margin-top: 20px;
-  padding: 14px 16px;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  border: 1px solid #cfe8d8;
-  border-radius: 10px;
-
-  background: #f1fbf4;
-  color: #1d8a5b;
-
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.profileSecurity svg {
-  flex-shrink: 0;
-}
-
-@media (max-width: 800px) {
-  .profileCard {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 650px) {
-  /* Sidebar is intentionally hidden on mobile in the existing layout. */
-  .profileCard {
-    padding: 17px;
-  }
-
-  .profileAvatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 15px;
-    font-size: 21px;
-  }
-
-  .profileIdentity h3 {
-    font-size: 18px;
-  }
-}
-
-/* ============================================================
-   UPDATED ENTERPRISE BLUE THEME
-   Inspired by the reference dashboard palette.
-   Existing class names are intentionally preserved.
-   ============================================================ */
-
-body {
-  background:
-    radial-gradient(circle at 92% 4%, rgba(47, 93, 168, 0.06), transparent 24%),
-    #eef2f8;
-}
-
-aside {
-  background:
-    linear-gradient(180deg, #172b5b 0%, #14264e 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.logo {
-  padding-bottom: 30px;
-}
-
-.logoMark {
-  background: #2f5da8;
-  box-shadow: 0 6px 16px rgba(47, 93, 168, 0.28);
-}
-
-nav button {
-  border: 1px solid transparent;
-}
-
-nav button:hover,
-nav button.active {
-  background: #243e73;
-  border-color: rgba(145, 177, 225, 0.12);
-  box-shadow: inset 3px 0 0 #6f9edc;
-}
-
-.sideBottom {
-  background: rgba(255, 255, 255, 0.045);
-  border-color: rgba(157, 181, 220, 0.18);
-}
-
-main {
-  background: transparent;
-}
-
-.stat,
-.panel,
-.repoCard,
-.profileCard {
-  border-color: #dfe6f0;
-  box-shadow:
-    0 5px 20px rgba(23, 43, 91, 0.055);
-}
-
-.stat:hover,
-.repoCard:hover {
-  box-shadow:
-    0 8px 24px rgba(23, 43, 91, 0.075);
-}
-
-.primary,
-.login-button {
-  background: #2f5da8;
-  border-color: #2f5da8;
-  box-shadow: 0 4px 10px rgba(47, 93, 168, 0.18);
-}
-
-.primary:hover:not(:disabled),
-.login-button:hover:not(:disabled) {
-  background: #274f91;
-  border-color: #274f91;
-}
-
-.statIcon,
-.repoIcon,
-.resultItemIcon,
-.historyStatIcon {
-  background: #e8eef8;
-  color: #2f5da8;
-}
-
-.connectionBadge.connected,
-.status.success {
-  background: #e9f7f0 !important;
-  color: #1d8a5b !important;
-}
-
-.status.failed,
-.connectionBadge.failed {
-  background: #fff0f2 !important;
-  color: #c23b49 !important;
-}
-
-.login-page {
-  background:
-    radial-gradient(circle at 20% 20%, rgba(47, 93, 168, 0.08), transparent 28%),
-    linear-gradient(135deg, #eef2f8 0%, #f7f9fc 100%);
-}
-
-.login-card {
-  border-color: #dfe6f0;
-  box-shadow:
-    0 24px 60px rgba(23, 43, 91, 0.10);
-}
-
-.login-logo {
-  background: #172b5b;
-  box-shadow: 0 8px 18px rgba(23, 43, 91, 0.18);
-}
-
-.profileAvatar {
-  background: #2f5da8;
-  box-shadow: 0 8px 18px rgba(47, 93, 168, 0.18);
-}
-
-.modalOverlay {
-  background: rgba(18, 35, 70, 0.52);
-}
-
-.link,
-.link:hover {
-  color: #2f5da8;
-}
-
-.selectedBadge {
-  background: #e7effc;
-  color: #2f5da8;
-}
-
-.selectedBadge,
-.connectionBadge.connected {
-  border-color: #cbdcf3 !important;
-}
-
-/* Sidebar account controls */
-aside > div:not(.logo):not(.sideBottom) {
-  border-top-color: rgba(180, 199, 229, 0.14) !important;
-}
-
-aside > div:not(.logo):not(.sideBottom) > button:hover:not(:disabled) {
-  background: #243e73 !important;
-}
-
-/* Slightly more polished headings */
-h1,
-.panelHead h2,
-.historyHeader h2,
-.modalHeader h2,
-.profileIdentity h3 {
-  letter-spacing: -0.025em;
-}
-
-/* ============================================================
-   RESPONSIVE THEME FINISH
-   ============================================================ */
-
-@media (max-width: 650px) {
-  .login-card {
-    box-shadow: 0 18px 42px rgba(23, 43, 91, 0.10);
-  }
-}
-
-
-/* ============================================================
-   LOGIN LINKS
-   ============================================================ */
-
-.login-forgot,
-.login-create-link {
-  color: #2f5da8;
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.login-forgot {
-  font-size: 12px;
-}
-
-.login-forgot:hover,
-.login-create-link:hover {
-  color: #274f91;
-  text-decoration: underline;
-}
-
-.login-button {
-  transition:
-    background 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.12s ease;
-}
-
-.login-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow:
-    0 6px 14px rgba(47, 93, 168, 0.22);
-}
-
-
-/* ============================================================
-   LOGIN UI — FINAL ENTERPRISE BLUE THEME
-   Works with the updated Login.jsx
-   ============================================================ */
-
-.login-page {
-  min-height: 100vh;
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 32px 20px;
-
-  background:
-    radial-gradient(
-      circle at 15% 15%,
-      rgba(47, 93, 168, 0.10),
-      transparent 30%
-    ),
-    radial-gradient(
-      circle at 85% 85%,
-      rgba(23, 43, 91, 0.07),
-      transparent 30%
-    ),
-    linear-gradient(
-      135deg,
-      #eef2f8 0%,
-      #f8fafc 100%
-    );
-}
-
-.login-card {
-  width: 100%;
-  max-width: 440px;
-
-  padding: 38px;
-
-  border: 1px solid #dfe6f0;
-  border-radius: 18px;
-
-  background: rgba(255, 255, 255, 0.98);
-
-  box-shadow:
-    0 28px 70px rgba(23, 43, 91, 0.12),
-    0 5px 18px rgba(16, 24, 40, 0.04);
-}
-
-.login-header {
-  margin-bottom: 30px;
-  text-align: left;
-}
-
 /* ------------------------------------------------------------
-   BRAND
+   DESKTOP
    ------------------------------------------------------------ */
 
-.login-brand {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-
-  margin-bottom: 34px;
-}
-
-.login-logo {
-  width: 46px;
-  height: 46px;
-
-  flex-shrink: 0;
-
-  display: grid;
-  place-items: center;
-
-  margin: 0;
-
-  border-radius: 12px;
-
-  background: #172b5b;
-  color: #ffffff;
-
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-
-  box-shadow:
-    0 8px 18px rgba(23, 43, 91, 0.20);
-}
-
-.login-brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.login-brand-title {
-  color: #172033;
-
-  font-size: 16px;
-  font-weight: 800;
-
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.login-brand-subtitle {
-  color: #7183a1;
-
-  font-size: 11px;
-  font-weight: 600;
-
-  line-height: 1.2;
-}
-
-/* ------------------------------------------------------------
-   LOGIN HEADING
-   ------------------------------------------------------------ */
-
-.login-header .eyebrow {
-  margin-bottom: 8px;
-
-  color: #2f5da8;
-
-  font-size: 10px;
-  font-weight: 800;
-
-  letter-spacing: 0.14em;
-}
-
-.login-header h2 {
-  margin: 0;
-
-  color: #172033;
-
-  font-size: 30px;
-  font-weight: 800;
-
-  line-height: 1.15;
-  letter-spacing: -0.035em;
-}
-
-.login-header p {
-  margin: 9px 0 0;
-
-  color: #7183a1;
-
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-/* ------------------------------------------------------------
-   FORM
-   ------------------------------------------------------------ */
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 19px;
-}
-
-.login-form .form-group {
-  gap: 7px;
-}
-
-.login-form .form-group label {
-  color: #34445f;
-
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.login-field-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  margin-bottom: 0;
-}
-
-.login-form .form-group input {
-  width: 100%;
-  height: 44px;
-
-  padding: 0 13px;
-
-  border: 1px solid #d6dfed;
-  border-radius: 9px;
-
-  background: #ffffff;
-  color: #172033;
-
-  font-size: 13px;
-
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.login-form .form-group input::placeholder {
-  color: #9aa8bc;
-}
-
-.login-form .form-group input:hover:not(:disabled) {
-  border-color: #bdcbe0;
-}
-
-.login-form .form-group input:focus {
-  border-color: #2f5da8;
-
-  box-shadow:
-    0 0 0 3px rgba(47, 93, 168, 0.11);
-}
-
-.login-form .form-group input:disabled {
-  background: #f2f5f9;
-}
-
-/* ------------------------------------------------------------
-   FORGOT PASSWORD
-   ------------------------------------------------------------ */
-
-.login-forgot {
-  color: #2f5da8;
-
-  font-size: 11px;
-  font-weight: 700;
-
-  text-decoration: none;
-
-  white-space: nowrap;
-}
-
-.login-forgot:hover {
-  color: #274f91;
-  text-decoration: underline;
-}
-
-/* ------------------------------------------------------------
-   ERROR
-   ------------------------------------------------------------ */
-
-.login-error {
-  padding: 10px 12px;
-
-  border: 1px solid #efc9cf;
-  border-radius: 8px;
-
-  background: #fff5f6;
-  color: #c23b49;
-
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-/* ------------------------------------------------------------
-   SIGN IN BUTTON
-   ------------------------------------------------------------ */
-
-.login-button {
-  width: 100%;
-  height: 45px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  margin-top: 2px;
-
-  border: 1px solid #2f5da8;
-  border-radius: 9px;
-
-  background: #2f5da8;
-  color: #ffffff;
-
-  font-size: 12px;
-  font-weight: 800;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 5px 13px rgba(47, 93, 168, 0.18);
-
-  transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.12s ease;
-}
-
-.login-button:hover:not(:disabled) {
-  background: #274f91;
-  border-color: #274f91;
-
-  transform: translateY(-1px);
-
-  box-shadow:
-    0 7px 16px rgba(47, 93, 168, 0.24);
-}
-
-.login-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-/* ------------------------------------------------------------
-   FOOTER
-   ------------------------------------------------------------ */
-
-.login-footer {
-  margin-top: 25px;
-
-  color: #8290a8;
-
-  font-size: 11px;
-
-  text-align: center;
-}
-
-.login-divider {
-  width: 100%;
-  height: 1px;
-
-  margin-bottom: 15px;
-
-  background: #e3e8f0;
-}
-
-.login-create-account {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-
-  color: #8290a8;
-
-  font-size: 11px;
-}
-
-.login-create-link {
-  color: #2f5da8;
-
-  font-size: 11px;
-  font-weight: 800;
-
-  text-decoration: none;
-}
-
-.login-create-link:hover {
-  color: #274f91;
-  text-decoration: underline;
-}
-
-/* ------------------------------------------------------------
-   MOBILE LOGIN
-   ------------------------------------------------------------ */
-
-@media (max-width: 650px) {
-  .login-page {
-    padding: 20px 15px;
-  }
-
-  .login-card {
-    max-width: 440px;
-
-    padding: 28px 22px;
-
-    border-radius: 15px;
-  }
-
-  .login-brand {
-    margin-bottom: 28px;
-  }
-
-  .login-header h2 {
-    font-size: 26px;
-  }
-
-  .login-header p {
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 400px) {
-  .login-card {
-    padding: 25px 18px;
-  }
-
-  .login-field-header {
-    align-items: flex-start;
-  }
-
-  .login-create-account {
-    flex-direction: column;
-    gap: 4px;
-  }
-}
-
-
-/* ============================================================
-   FINAL APP LAYOUT FIX
-   ============================================================ */
-
-html,
-body,
-#root {
-  width: 100%;
-  min-width: 0;
-  min-height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  overflow-x: hidden;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-/* Main application wrapper */
-.app {
-  width: 100%;
-  min-height: 100vh;
-
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-
-  overflow: visible;
-}
-
-/* Sidebar */
-.app > aside {
-  width: 246px;
-  min-width: 246px;
-  max-width: 246px;
-  min-height: 100vh;
-
-  flex: 0 0 246px;
-
-  position: relative;
-  z-index: 10;
-}
-
-/* Main dashboard area */
-.app > main {
-  display: block !important;
-
-  width: auto !important;
-  min-width: 0 !important;
-
-  flex: 1 1 auto !important;
-
-  min-height: 100vh;
-
-  visibility: visible !important;
-  opacity: 1 !important;
-
-  overflow-x: hidden;
-  overflow-y: visible;
-}
-
-/* Make dashboard children visible */
-.app > main > * {
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Don't allow a child component to accidentally collapse */
-.app > main section,
-.app > main header,
-.app > main .cards,
-.app > main .grid,
-.app > main .panel {
-  min-width: 0;
-}
-
-/* Desktop */
 @media (min-width: 1101px) {
   .app > aside {
     width: 246px;
@@ -3670,7 +5491,10 @@ body {
   }
 }
 
-/* Tablet */
+/* ------------------------------------------------------------
+   TABLET
+   ------------------------------------------------------------ */
+
 @media (max-width: 1100px) {
   .app > aside {
     width: 210px;
@@ -3681,9 +5505,46 @@ body {
   .app > main {
     width: calc(100% - 210px) !important;
   }
+
+  main {
+    padding: 26px 24px;
+  }
 }
 
-/* Mobile */
+/* ------------------------------------------------------------
+   MOBILE
+   ------------------------------------------------------------ */
+
+@media (max-width: 800px) {
+  .panelHead {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+  .deliverySelector {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+  .deliverySelector select {
+    width: 100%;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .repoActions {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 650px) {
   .app > aside {
     display: none !important;
@@ -3692,6 +5553,2039 @@ body {
   .app > main {
     width: 100% !important;
     min-width: 0 !important;
+
     flex: 1 1 100% !important;
   }
+
+  main {
+    padding: 20px 15px;
+  }
+
+  .panel {
+    padding: 15px;
+  }
+
+  .repoCard {
+    padding: 14px;
+  }
+
+  .historyPagination {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .historyPagination > div {
+    width: 100%;
+  }
+
+  .paginationButton {
+    flex: 1 1 auto;
+  }
+}
+/* ============================================================
+   REPOSITORY WIZARD + REPOSITORY CARD
+   FINAL LAYOUT FIX
+   CSS ONLY — NO FUNCTIONALITY CHANGES
+   ============================================================ */
+
+
+/* ============================================================
+   REPOSITORY WIZARD OVERLAY
+   ============================================================ */
+
+.repositoryModalOverlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 2000;
+
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+
+  padding: 0;
+
+  background: rgba(20, 16, 38, 0.46);
+
+  overflow: hidden;
+}
+
+
+/* ============================================================
+   REPOSITORY WIZARD DRAWER
+   ============================================================ */
+
+.repositoryWizardModal {
+  width: min(620px, 100vw);
+  height: 100vh;
+
+  max-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  margin: 0;
+
+  border: 0;
+  border-left: 1px solid #e5deed;
+  border-radius: 0;
+
+  background: #ffffff;
+
+  box-shadow:
+    -18px 0 45px rgba(43, 31, 75, 0.14);
+
+  overflow: hidden;
+}
+
+
+/* ============================================================
+   DRAWER HEADER
+   ============================================================ */
+
+.repositoryWizardHeader {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  padding: 24px 26px 20px;
+
+  border-bottom: 1px solid #eee9f3;
+
+  background: #ffffff;
+}
+
+.repositoryWizardHeader > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.repositoryWizardHeader .eyebrow {
+  margin-bottom: 5px;
+
+  color: #8a789d;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+}
+
+.repositoryWizardHeader h2 {
+  margin: 0;
+
+  color: #332b3d;
+
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.repositoryWizardHeader span {
+  display: block;
+
+  margin-top: 6px;
+
+  color: #8b8195;
+
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.repositoryWizardHeader .iconButton {
+  flex: 0 0 auto;
+
+  width: 32px;
+  height: 32px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: 1px solid #ddd5e7;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: #6f5d7e;
+
+  cursor: pointer;
+}
+
+.repositoryWizardHeader .iconButton:hover:not(:disabled) {
+  background: #f8f5fa;
+  border-color: #cfc4dc;
+}
+
+
+/* ============================================================
+   STEP INDICATOR
+   ============================================================ */
+
+.repositoryWizardSteps {
+  flex: 0 0 auto;
+
+  width: 100%;
+
+  display: flex;
+  align-items: flex-start;
+
+  padding: 22px 26px 20px;
+
+  border-bottom: 1px solid #eee9f3;
+
+  background: #ffffff;
+}
+
+.repositoryWizardStep {
+  flex: 1 1 0;
+
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 7px;
+
+  position: relative;
+
+  color: #91869c;
+
+  text-align: center;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.repositoryWizardCircle {
+  width: 24px;
+  height: 24px;
+
+  flex: 0 0 24px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid #ded6e7;
+  border-radius: 50%;
+
+  background: #f7f4fa;
+  color: #8d8198;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  position: relative;
+  z-index: 2;
+}
+
+.repositoryWizardStep.active {
+  color: #6d4db1;
+}
+
+.repositoryWizardStep.active .repositoryWizardCircle {
+  border-color: #6842b8;
+
+  background: #6842b8;
+  color: #ffffff;
+
+  box-shadow:
+    0 4px 10px rgba(104, 66, 184, 0.20);
+}
+
+.repositoryWizardStep.completed {
+  color: #3b9a73;
+}
+
+.repositoryWizardStep.completed .repositoryWizardCircle {
+  border-color: #53b58a;
+
+  background: #eaf7f1;
+  color: #32936c;
+}
+
+.repositoryWizardStep > span {
+  display: block;
+
+  width: 100%;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repositoryWizardLine {
+  flex: 1 1 0;
+
+  height: 1px;
+
+  margin-top: 12px;
+
+  background: #ddd5e7;
+}
+
+.repositoryWizardLine.completed {
+  background: #b9dccb;
+}
+
+
+/* ============================================================
+   WIZARD FORM
+   ============================================================ */
+
+.repositoryWizardForm {
+  flex: 1 1 auto;
+
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+}
+
+.repositoryWizardPanel {
+  flex: 1 1 auto;
+
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 24px 26px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.repositoryWizardPanelHeader {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 10px;
+
+  margin-bottom: 20px;
+}
+
+.repositoryWizardPanelIcon {
+  width: 32px;
+  height: 32px;
+
+  flex: 0 0 32px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 8px;
+
+  background: #f0eafb;
+  color: #7557b8;
+}
+
+.repositoryWizardPanelHeader > div:last-child {
+  min-width: 0;
+}
+
+.repositoryWizardPanelHeader h3 {
+  margin: 0;
+
+  color: #342c40;
+
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.repositoryWizardPanelHeader p {
+  margin: 5px 0 0;
+
+  color: #8b8195;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+
+/* ============================================================
+   WIZARD FORM GRID
+   ============================================================ */
+
+.repositoryWizardPanel .formGrid {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  gap: 14px 16px;
+}
+
+.repositoryWizardPanel .formField {
+  min-width: 0;
+}
+
+.repositoryWizardPanel .formField label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #5e5368;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.repositoryWizardPanel .formField input,
+.repositoryWizardPanel .formField select,
+.repositoryWizardPanel .formField textarea {
+  width: 100%;
+  min-width: 0;
+
+  border: 1px solid #ddd5e7;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: #40374e;
+
+  font-size: 11px;
+}
+
+.repositoryWizardPanel .formField input,
+.repositoryWizardPanel .formField select {
+  height: 38px;
+
+  padding: 0 10px;
+}
+
+.repositoryWizardPanel .formField textarea {
+  min-height: 90px;
+
+  padding: 9px 10px;
+}
+
+.repositoryWizardPanel .formField input:focus,
+.repositoryWizardPanel .formField select:focus,
+.repositoryWizardPanel .formField textarea:focus {
+  outline: none;
+
+  border-color: #9b7bc7;
+
+  box-shadow:
+    0 0 0 3px rgba(117, 87, 184, 0.08);
+}
+
+
+/* ============================================================
+   WIZARD FOOTER / ACTIONS
+   ============================================================ */
+
+.repositoryWizardForm > .modalFooter,
+.repositoryWizardPanel > .modalFooter {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-top: auto;
+  padding: 16px 26px;
+
+  border-top: 1px solid #eee9f3;
+
+  background: #ffffff;
+}
+
+.repositoryWizardForm .modalFooter .primary,
+.repositoryWizardForm .modalFooter .ghost {
+  min-height: 36px;
+
+  padding: 8px 14px;
+
+  font-size: 11px;
+}
+
+
+/* ============================================================
+   TARGETS
+   ============================================================ */
+
+.repositoryTargetList {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  width: 100%;
+}
+
+.repositoryTargetRow {
+  display: grid !important;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    34px !important;
+
+  gap: 10px;
+
+  align-items: end;
+
+  min-width: 0;
+
+  padding: 10px;
+
+  border: 1px solid #e5deec;
+  border-radius: 9px;
+
+  background: #faf8fc;
+}
+
+.repositoryTargetRow .formField {
+  min-width: 0;
+}
+
+.repositoryTargetRow input {
+  width: 100%;
+}
+
+
+/* ============================================================
+   REPOSITORY CARD
+   ============================================================ */
+
+.targetRepoCard {
+  width: 100%;
+
+  display: block;
+
+  padding: 16px 18px;
+
+  border: 1px solid #e2dce9;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  overflow: hidden;
+}
+
+.targetRepoCard.selected {
+  border-color: #9b73d6;
+
+  background: #fdfbff;
+
+  box-shadow:
+    0 0 0 1px rgba(117, 87, 184, 0.12);
+}
+
+
+/* ============================================================
+   REPOSITORY CARD HEADER
+   ============================================================ */
+
+.targetRepoHeader {
+  width: 100%;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  min-width: 0;
+}
+
+.targetRepoIdentity {
+  min-width: 0;
+
+  flex: 1 1 auto;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 11px;
+}
+
+.targetRepoIcon {
+  width: 42px;
+  height: 42px;
+
+  flex: 0 0 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 10px;
+
+  background: #f0eafb;
+  color: #7557b8;
+}
+
+.targetRepoIdentity .repoInfo {
+  min-width: 0;
+
+  flex: 1 1 auto;
+}
+
+.targetRepoIdentity .repoTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 7px;
+
+  min-width: 0;
+}
+
+.targetRepoIdentity .repoTitle b {
+  color: #352d40;
+
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.targetRepoIdentity .repoInfo p {
+  margin: 4px 0 0;
+
+  color: #8b8195;
+
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.targetRepoHeader .connectionBadge {
+  flex: 0 0 auto;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 5px;
+
+  min-height: 27px;
+
+  padding: 5px 9px;
+
+  border: 1px solid #ccebdc;
+  border-radius: 999px;
+
+  background: #eaf7f1;
+  color: #32866a;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+.targetRepoHeader .connectionBadge.failed {
+  border-color: #efcfd4;
+
+  background: #fff2f7;
+  color: #b24d7c;
+}
+
+.targetRepoHeader .connectionBadge.unknown {
+  border-color: #e9dec5;
+
+  background: #faf3e5;
+  color: #92713a;
+}
+
+
+/* ============================================================
+   REPOSITORY SOURCE
+   ============================================================ */
+
+.targetRepoSource {
+  width: 100%;
+
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  margin-top: 13px;
+  padding: 8px 10px;
+
+  border: 1px solid #e8e1ee;
+  border-radius: 8px;
+
+  background: #fbf9fc;
+
+  color: #8a7e94;
+
+  font-size: 10px;
+}
+
+.targetRepoSource svg {
+  flex: 0 0 auto;
+
+  color: #9a87ae;
+}
+
+.targetRepoSource span {
+  min-width: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   REPOSITORY DETAIL GRID
+   ============================================================ */
+
+.targetRepoDetails {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 8px;
+
+  margin-top: 10px;
+}
+
+.targetRepoDetail {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  min-height: 44px;
+
+  padding: 8px 10px;
+
+  border: 1px solid #e8e1ee;
+  border-radius: 8px;
+
+  background: #ffffff;
+}
+
+.targetRepoDetail > svg {
+  flex: 0 0 auto;
+
+  color: #8669a6;
+}
+
+.targetRepoDetail > div {
+  min-width: 0;
+}
+
+.targetRepoDetail span {
+  display: block;
+
+  color: #95899e;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.targetRepoDetail strong {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #44394e;
+
+  font-size: 10px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   CONFIGURED TARGETS
+   ============================================================ */
+
+.targetRepoTargets {
+  width: 100%;
+
+  margin-top: 11px;
+  padding: 10px;
+
+  border: 1px solid #e8e1ee;
+  border-radius: 9px;
+
+  background: #fcfafd;
+}
+
+.targetRepoSectionLabel {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  margin-bottom: 8px;
+
+  color: #77668a;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.targetRepoSectionLabel svg {
+  flex: 0 0 auto;
+}
+
+.targetRepoTargetList {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  min-width: 0;
+}
+
+.targetRepoTarget {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  min-height: 28px;
+
+  padding: 5px 7px;
+
+  border: 1px solid #e9e2ef;
+  border-radius: 6px;
+
+  background: #ffffff;
+
+  color: #51465c;
+
+  font-size: 10px;
+}
+
+.targetRepoTarget > span:last-child {
+  min-width: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.targetRepoTargetIndex {
+  width: 19px;
+  height: 19px;
+
+  flex: 0 0 19px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 5px;
+
+  background: #f0eafb;
+  color: #7557b8;
+
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.targetRepoMore {
+  margin-top: 2px;
+
+  color: #8669a6;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.targetRepoExtensions {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 5px;
+
+  margin-top: 7px;
+}
+
+.targetRepoExtensions span {
+  padding: 4px 6px;
+
+  border: 1px solid #e5ddec;
+  border-radius: 5px;
+
+  background: #f6f1fa;
+  color: #765f8d;
+
+  font-size: 8px;
+}
+
+
+/* ============================================================
+   REPOSITORY CARD FOOTER
+   ============================================================ */
+
+.targetRepoFooter {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap: 10px;
+
+  margin-top: 11px;
+  padding-top: 10px;
+
+  border-top: 1px solid #eee8f2;
+}
+
+.targetRepoFooter > div {
+  min-width: 0;
+}
+
+.targetRepoFooter span {
+  display: block;
+
+  color: #978b9f;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.targetRepoFooter strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #51465c;
+
+  font-size: 9px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   REPOSITORY ACTIONS
+   ============================================================ */
+
+.targetRepoCard .repoActions {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  flex-wrap: wrap;
+
+  gap: 7px;
+
+  margin-top: 10px;
+  padding-top: 10px;
+
+  border-top: 1px solid #eee8f2;
+}
+
+.targetRepoCard .repoActions button {
+  min-height: 32px;
+
+  padding: 6px 10px;
+
+  font-size: 10px;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .repositoryWizardModal {
+    width: min(620px, 100vw);
+  }
+
+  .targetRepoDetails {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .repositoryWizardModal {
+    width: 100vw;
+  }
+
+  .repositoryWizardHeader {
+    padding: 20px 18px 16px;
+  }
+
+  .repositoryWizardSteps {
+    padding: 18px 12px;
+  }
+
+  .repositoryWizardPanel {
+    padding: 20px 18px;
+  }
+
+  .repositoryWizardPanel .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryWizardForm > .modalFooter,
+  .repositoryWizardPanel > .modalFooter {
+    padding: 14px 18px;
+  }
+
+  .targetRepoHeader {
+    flex-direction: column;
+  }
+
+  .targetRepoHeader .connectionBadge {
+    align-self: flex-start;
+  }
+
+  .targetRepoDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .targetRepoFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryTargetRow {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ============================================================
+   REPOSITORY PAGE — TARGET COMPACT LAYOUT
+   ============================================================ */
+
+.repositoryPage {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.repositoryPageHeader {
+  display: none;
+}
+
+.repositoryStats {
+  gap: 10px;
+  margin: 14px 0 16px;
+}
+
+.repositoryStatCard {
+  min-height: 86px;
+  padding: 15px;
+  border-radius: 9px;
+  box-shadow: 0 5px 16px rgba(51, 36, 92, 0.035);
+}
+
+.repositoryStatIcon {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  border-radius: 50%;
+}
+
+.repositoryStatCard strong {
+  font-size: 19px;
+}
+
+.repositoryStatCard b {
+  margin-top: 2px;
+  font-size: 10px;
+}
+
+.repositoryStatCard span {
+  margin-top: 2px;
+  font-size: 8px;
+}
+
+.repositoryToolbar {
+  grid-template-columns: minmax(0, 1fr) 150px auto;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.repositorySearch,
+.repositoryStatusFilter {
+  min-height: 34px;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.repositorySearch input,
+.repositoryStatusFilter {
+  font-size: 10px;
+}
+
+.repositoryViewToggle {
+  min-height: 34px;
+  padding: 3px;
+  border-radius: 7px;
+}
+
+.repositoryViewToggle button {
+  width: 28px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 0;
+}
+
+.repositoryViewToggle button:first-child::before {
+  content: "▦";
+  font-size: 15px;
+  line-height: 1;
+}
+
+.repositoryViewToggle button:last-child::before {
+  content: "☷";
+  font-size: 15px;
+  line-height: 1;
+}
+
+.repositoryResultSummary {
+  display: none;
+}
+
+.repositoryResultSummary b,
+.repositoryResultSummary span {
+  font-size: 10px;
+}
+
+.repositoryGrid,
+.repositoryListView {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
+}
+
+.targetRepoCard {
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.targetRepoCard:hover {
+  transform: none;
+}
+
+.targetRepoCard.selected {
+  border-color: #8756d8;
+  box-shadow: 0 0 0 1px rgba(117, 87, 184, 0.1);
+}
+
+.targetRepoHeader {
+  align-items: center;
+  gap: 12px;
+}
+
+.targetRepoIcon {
+  width: 36px;
+  height: 36px;
+  flex-basis: 36px;
+  border-radius: 8px;
+}
+
+.targetRepoIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.targetRepoIdentity .repoTitle b {
+  font-size: 13px;
+}
+
+.targetRepoIdentity .repoInfo p {
+  display: none;
+}
+
+.selectedBadge {
+  padding: 3px 6px;
+  font-size: 7px;
+}
+
+.targetRepoHeader .connectionBadge {
+  min-height: 22px;
+  padding: 3px 8px;
+  font-size: 8px;
+}
+
+.targetRepoSource {
+  margin-top: 2px;
+  padding: 0 0 0 47px;
+  border: 0;
+  background: transparent;
+  color: #7a7287;
+  font-size: 9px;
+}
+
+.targetRepoSource svg {
+  display: none;
+}
+
+.targetRepoDetails {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+  padding: 7px 0 8px 47px;
+  border-bottom: 1px solid #eee9f2;
+}
+
+.targetRepoDetail {
+  min-height: 0;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: #f6f2fb;
+}
+
+.targetRepoDetail > svg {
+  width: 11px;
+  height: 11px;
+}
+
+.targetRepoDetail span {
+  display: none;
+}
+
+.targetRepoDetail strong {
+  margin: 0;
+  color: #5a4c69;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.targetRepoTargets,
+.targetRepoExtensions {
+  display: none;
+}
+
+.targetRepoActivity {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 8px;
+}
+
+.targetRepoActivity > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.targetRepoActivity span,
+.targetRepoActivity strong {
+  margin: 0;
+  color: #786f82;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.targetRepoActivity strong {
+  color: #51465d;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.targetRepoCard .repoActions {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  flex-wrap: nowrap;
+}
+
+.targetRepoCard .repoActions button {
+  min-height: 28px;
+  padding: 5px 9px;
+  font-size: 9px;
+}
+
+.targetRepoCard .repoActions button:first-child {
+  display: none;
+}
+
+.repositoryPagination {
+  margin-top: 9px;
+  padding-top: 9px;
+}
+
+.repositoryModalOverlay {
+  background: rgba(35, 25, 61, 0.10);
+  backdrop-filter: blur(1px);
+}
+
+.repositoryWizardModal {
+  width: min(610px, 100vw);
+}
+
+.repositoryWizardHeader {
+  padding: 24px 26px 18px;
+}
+
+.repositoryWizardHeader h2 {
+  font-size: 19px;
+}
+
+.repositoryWizardSteps {
+  padding-top: 20px;
+  padding-bottom: 18px;
+}
+
+@media (max-width: 800px) {
+  .repositoryToolbar {
+    grid-template-columns: 1fr 140px auto;
+  }
+
+  .targetRepoCard .repoActions {
+    position: static;
+    margin-top: 10px;
+  }
+
+  .targetRepoActivity {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 650px) {
+  .repositoryStats,
+  .repositoryToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryViewToggle {
+    justify-self: end;
+  }
+
+  .targetRepoDetails,
+  .targetRepoSource {
+    padding-left: 0;
+  }
+
+  .targetRepoHeader .connectionBadge {
+    align-self: flex-start;
+  }
+}
+
+/* ============================================================
+   FINAL DARK THEME SUPPORT
+   ------------------------------------------------------------
+   Design-only overrides for the Settings -> Theme selection.
+   The existing light theme, layout, responsive rules, API calls,
+   authentication, RBAC and repository/delivery behavior remain
+   unchanged.
+
+   App.jsx applies data-theme="dark" to the document root when
+   Dark is selected (and when System default resolves to dark).
+   ============================================================ */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --app-bg: #0b1020;
+  --app-bg-soft: #10172a;
+
+  --purple: #a78bfa;
+  --purple-dark: #8b5cf6;
+  --purple-soft: rgba(167, 139, 250, 0.14);
+  --purple-border: rgba(167, 139, 250, 0.30);
+
+  --text: #f1f5f9;
+  --text-soft: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --border: #263247;
+  --border-soft: #1d293d;
+  --white: #111827;
+
+  --green: #4ade80;
+  --green-bg: rgba(34, 197, 94, 0.13);
+  --green-border: rgba(74, 222, 128, 0.28);
+
+  --yellow: #facc15;
+  --yellow-bg: rgba(234, 179, 8, 0.13);
+  --yellow-border: rgba(250, 204, 21, 0.28);
+
+  --red: #fb7185;
+  --red-bg: rgba(244, 63, 94, 0.13);
+  --red-border: rgba(251, 113, 133, 0.28);
+
+  --shadow-sm: 0 4px 18px rgba(0, 0, 0, 0.20);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.26);
+  --shadow-lg: 0 18px 45px rgba(0, 0, 0, 0.34);
+}
+
+:root[data-theme="dark"] html,
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #root {
+  background: #0b1020 !important;
+  color: #f1f5f9 !important;
+}
+
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(
+      circle at 88% 3%,
+      rgba(124, 58, 237, 0.16),
+      transparent 27%
+    ),
+    radial-gradient(
+      circle at 25% 100%,
+      rgba(168, 85, 247, 0.08),
+      transparent 30%
+    ),
+    #0b1020 !important;
+}
+
+:root[data-theme="dark"] .app {
+  background: transparent !important;
+  color: #f1f5f9 !important;
+}
+
+/* Keep the existing purple sidebar, but give its lower surface
+   enough contrast against the dark main workspace. */
+:root[data-theme="dark"] .app > aside {
+  border-right-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+:root[data-theme="dark"] .app > main,
+:root[data-theme="dark"] main,
+:root[data-theme="dark"] header {
+  background: transparent !important;
+  color: #f1f5f9 !important;
+}
+
+/* ============================================================
+   PAGE / HEADER
+   ============================================================ */
+
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] h5,
+:root[data-theme="dark"] h6,
+:root[data-theme="dark"] strong,
+:root[data-theme="dark"] b {
+  color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] p,
+:root[data-theme="dark"] small,
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .textMuted,
+:root[data-theme="dark"] .text-muted,
+:root[data-theme="dark"] .hint,
+:root[data-theme="dark"] .helperText,
+:root[data-theme="dark"] .fieldHelperText {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .eyebrow {
+  color: #a78bfa !important;
+}
+
+/* ============================================================
+   PANELS / CARDS
+   ============================================================ */
+
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .empty,
+:root[data-theme="dark"] .settingsCard,
+:root[data-theme="dark"] .profileCard,
+:root[data-theme="dark"] .profileActionCard,
+:root[data-theme="dark"] .profileAbout,
+:root[data-theme="dark"] .repositoryStatCard,
+:root[data-theme="dark"] .repositoryCard,
+:root[data-theme="dark"] .dashboard-kpi-card,
+:root[data-theme="dark"] .dashboard-panel,
+:root[data-theme="dark"] .dashboard-activity-panel,
+:root[data-theme="dark"] .dashboard-recent-panel,
+:root[data-theme="dark"] .dashboard-last-panel {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+  border-color: #263247 !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22) !important;
+}
+
+:root[data-theme="dark"] .repositoryCard:hover,
+:root[data-theme="dark"] .repoCard:hover {
+  border-color: #3b4a64 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28) !important;
+}
+
+/* ============================================================
+   REPOSITORY CARDS
+   ============================================================ */
+
+:root[data-theme="dark"] .repoCard,
+:root[data-theme="dark"] .repoCard.selected {
+  background: #111827 !important;
+  border-color: #263247 !important;
+  color: #e5e7eb !important;
+}
+
+:root[data-theme="dark"] .repoCard.selected {
+  box-shadow:
+    0 0 0 2px rgba(167, 139, 250, 0.16),
+    0 10px 30px rgba(0, 0, 0, 0.28) !important;
+}
+
+:root[data-theme="dark"] .repoInfo b,
+:root[data-theme="dark"] .repoTitle b {
+  color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .repoInfo p,
+:root[data-theme="dark"] .repoPath,
+:root[data-theme="dark"] .repoMeta > span,
+:root[data-theme="dark"] .repoInfo span {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .repoIcon {
+  background: #1e293b !important;
+  color: #c4b5fd !important;
+  border-color: #334155 !important;
+}
+
+:root[data-theme="dark"] .selectedBadge {
+  background: rgba(139, 92, 246, 0.16) !important;
+  border-color: rgba(167, 139, 250, 0.30) !important;
+  color: #c4b5fd !important;
+}
+
+:root[data-theme="dark"] .repoCard .repoActions,
+:root[data-theme="dark"] .targetRepoCard .repoActions,
+:root[data-theme="dark"] .targetRepoFooter {
+  border-color: #263247 !important;
+}
+
+:root[data-theme="dark"] .targetRepoDetail,
+:root[data-theme="dark"] .targetRepoTargets,
+:root[data-theme="dark"] .targetRepoTarget {
+  background: #0f172a !important;
+  border-color: #263247 !important;
+  color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .targetRepoDetail strong,
+:root[data-theme="dark"] .targetRepoTarget,
+:root[data-theme="dark"] .targetRepoFooter strong {
+  color: #e2e8f0 !important;
+}
+
+:root[data-theme="dark"] .targetRepoDetail span,
+:root[data-theme="dark"] .targetRepoSectionLabel,
+:root[data-theme="dark"] .targetRepoFooter span {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .targetRepoTargetIndex,
+:root[data-theme="dark"] .targetRepoExtensions span {
+  background: rgba(139, 92, 246, 0.14) !important;
+  border-color: rgba(167, 139, 250, 0.25) !important;
+  color: #c4b5fd !important;
+}
+
+/* ============================================================
+   STATISTICS / STATUS AREAS
+   ============================================================ */
+
+:root[data-theme="dark"] .repositoryStatCard,
+:root[data-theme="dark"] .historyStat {
+  background: #111827 !important;
+  border-color: #263247 !important;
+  color: #e5e7eb !important;
+}
+
+:root[data-theme="dark"] .repositoryStatCard span,
+:root[data-theme="dark"] .repositoryStatCard small,
+:root[data-theme="dark"] .historyStat span,
+:root[data-theme="dark"] .historyStat small {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .statusBadge.active,
+:root[data-theme="dark"] .statusBadge.success {
+  background: rgba(34, 197, 94, 0.14) !important;
+  color: #86efac !important;
+}
+
+:root[data-theme="dark"] .statusBadge.error {
+  background: rgba(244, 63, 94, 0.14) !important;
+  color: #fda4af !important;
+}
+
+/* ============================================================
+   INPUTS / SELECTS / TEXTAREAS
+   ============================================================ */
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .textInput,
+:root[data-theme="dark"] .historySearch,
+:root[data-theme="dark"] .repositorySearch,
+:root[data-theme="dark"] .settings input,
+:root[data-theme="dark"] .formField input,
+:root[data-theme="dark"] .formField select,
+:root[data-theme="dark"] .formField textarea,
+:root[data-theme="dark"] .settingRow select {
+  background: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: #334155 !important;
+}
+
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] select:focus,
+:root[data-theme="dark"] textarea:focus {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.14) !important;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #64748b !important;
+}
+
+:root[data-theme="dark"] option {
+  background: #0f172a !important;
+  color: #e5e7eb !important;
+}
+
+:root[data-theme="dark"] .formField label,
+:root[data-theme="dark"] .settings label,
+:root[data-theme="dark"] .settingsFieldBlock label,
+:root[data-theme="dark"] .settingRow label {
+  color: #cbd5e1 !important;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+:root[data-theme="dark"] .ghost,
+:root[data-theme="dark"] .secondaryActionButton,
+:root[data-theme="dark"] .themeButton,
+:root[data-theme="dark"] .fontButton,
+:root[data-theme="dark"] .paginationButton,
+:root[data-theme="dark"] .repositoryViewToggle button,
+:root[data-theme="dark"] .repositoryPaginationControls button {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+:root[data-theme="dark"] .ghost:hover:not(:disabled),
+:root[data-theme="dark"] .secondaryActionButton:hover:not(:disabled),
+:root[data-theme="dark"] .themeButton:hover:not(:disabled),
+:root[data-theme="dark"] .fontButton:hover:not(:disabled),
+:root[data-theme="dark"] .paginationButton:hover:not(:disabled),
+:root[data-theme="dark"] .repositoryViewToggle button:hover:not(:disabled),
+:root[data-theme="dark"] .repositoryPaginationControls button:hover:not(:disabled) {
+  background: #273449 !important;
+  border-color: #475569 !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .themeButton.selected,
+:root[data-theme="dark"] .fontButton.selected,
+:root[data-theme="dark"] .paginationButton.active,
+:root[data-theme="dark"] .repositoryViewToggle button.active,
+:root[data-theme="dark"] .repositoryPaginationControls button.current {
+  background: rgba(139, 92, 246, 0.20) !important;
+  color: #ddd6fe !important;
+  border-color: #8b5cf6 !important;
+}
+
+:root[data-theme="dark"] .primary,
+:root[data-theme="dark"] .login-button {
+  background: #7c3aed !important;
+  border-color: #8b5cf6 !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .primary:hover:not(:disabled),
+:root[data-theme="dark"] .login-button:hover:not(:disabled) {
+  background: #6d28d9 !important;
+  border-color: #7c3aed !important;
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+
+:root[data-theme="dark"] .settingsCardHeader,
+:root[data-theme="dark"] .settingRow,
+:root[data-theme="dark"] .securityRow,
+:root[data-theme="dark"] .settingsInfoRow {
+  border-color: #263247 !important;
+}
+
+:root[data-theme="dark"] .settingsCardHeader p,
+:root[data-theme="dark"] .settingsFieldBlock p,
+:root[data-theme="dark"] .settingRow small,
+:root[data-theme="dark"] .securityRow span,
+:root[data-theme="dark"] .settingsInfoRow span {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .settingsCardIcon {
+  background: rgba(139, 92, 246, 0.14) !important;
+  color: #c4b5fd !important;
+}
+
+:root[data-theme="dark"] .switchButton {
+  background: #334155 !important;
+}
+
+:root[data-theme="dark"] .switchButton span {
+  background: #e2e8f0 !important;
+}
+
+:root[data-theme="dark"] .switchButton.on {
+  background: #7c3aed !important;
+}
+
+:root[data-theme="dark"] .settingsNotice {
+  background: rgba(34, 197, 94, 0.10) !important;
+  border-color: rgba(74, 222, 128, 0.24) !important;
+  color: #bbf7d0 !important;
+}
+
+:root[data-theme="dark"] .settingsNoticeIcon {
+  color: #86efac !important;
+}
+
+/* ============================================================
+   HISTORY / AUDIT LOGS / TABLES
+   ============================================================ */
+
+:root[data-theme="dark"] .historyTable,
+:root[data-theme="dark"] .audit-log-table,
+:root[data-theme="dark"] table {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+  border-color: #263247 !important;
+}
+
+:root[data-theme="dark"] .historyHead,
+:root[data-theme="dark"] .historyRow.historyHead,
+:root[data-theme="dark"] thead {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .historyRow {
+  background: #111827 !important;
+  color: #cbd5e1 !important;
+  border-color: #263247 !important;
+}
+
+:root[data-theme="dark"] .historyRow:not(.historyHead):hover,
+:root[data-theme="dark"] tbody tr:hover {
+  background: #172033 !important;
+}
+
+:root[data-theme="dark"] .historyRow > span,
+:root[data-theme="dark"] tbody td,
+:root[data-theme="dark"] tbody th {
+  color: #cbd5e1 !important;
+  border-color: #263247 !important;
+}
+
+:root[data-theme="dark"] .historyRow > span small {
+  color: #64748b !important;
+}
+
+/* ============================================================
+   MODALS / DRAWERS
+   ============================================================ */
+
+:root[data-theme="dark"] .modalOverlay,
+:root[data-theme="dark"] .repositoryModalOverlay {
+  background: rgba(2, 6, 23, 0.78) !important;
+}
+
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .deliveryModal,
+:root[data-theme="dark"] .repositoryWizardModal {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+  border-color: #334155 !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48) !important;
+}
+
+:root[data-theme="dark"] .modalHeader,
+:root[data-theme="dark"] .modalFooter,
+:root[data-theme="dark"] .deliveryResultHeader,
+:root[data-theme="dark"] .deliveryModalFooter,
+:root[data-theme="dark"] .repositoryWizardHeader,
+:root[data-theme="dark"] .repositoryWizardSteps {
+  border-color: #263247 !important;
+  background: #111827 !important;
+}
+
+:root[data-theme="dark"] .modalHeader h2,
+:root[data-theme="dark"] .resultHeaderText h2,
+:root[data-theme="dark"] .repositoryWizardHeader h2,
+:root[data-theme="dark"] .repositoryWizardPanelHeader h3 {
+  color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .modalHeader span,
+:root[data-theme="dark"] .repositoryWizardHeader span,
+:root[data-theme="dark"] .repositoryWizardPanelHeader p {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .modalHeader .iconButton,
+:root[data-theme="dark"] .repositoryWizardHeader .iconButton {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .modalHeader .iconButton:hover:not(:disabled),
+:root[data-theme="dark"] .repositoryWizardHeader .iconButton:hover:not(:disabled) {
+  background: #273449 !important;
+  border-color: #475569 !important;
+}
+
+:root[data-theme="dark"] .resultItem {
+  background: #0f172a !important;
+  border-color: #263247 !important;
+  color: #e2e8f0 !important;
+}
+
+:root[data-theme="dark"] .repositoryWizardPanel {
+  background: #111827 !important;
+}
+
+:root[data-theme="dark"] .repositoryWizardPanelIcon {
+  background: rgba(139, 92, 246, 0.14) !important;
+  color: #c4b5fd !important;
+}
+
+:root[data-theme="dark"] .repositoryWizardCircle {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .repositoryWizardStep.active .repositoryWizardCircle {
+  background: #7c3aed !important;
+  border-color: #8b5cf6 !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .repositoryWizardStep.completed .repositoryWizardCircle {
+  background: rgba(34, 197, 94, 0.14) !important;
+  border-color: rgba(74, 222, 128, 0.35) !important;
+  color: #86efac !important;
+}
+
+:root[data-theme="dark"] .repositoryWizardLine {
+  background: #334155 !important;
+}
+
+:root[data-theme="dark"] .repositoryWizardLine.completed {
+  background: #3f7f5c !important;
+}
+
+/* ============================================================
+   RECIPIENTS / SMTP / DELIVERY RESULT
+   ============================================================ */
+
+:root[data-theme="dark"] .recipientChip {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .recipientChip button:hover:not(:disabled) {
+  background: #273449 !important;
+}
+
+:root[data-theme="dark"] .smtpNotice {
+  background: rgba(34, 197, 94, 0.09) !important;
+  border-color: rgba(74, 222, 128, 0.22) !important;
+  color: #86efac !important;
+}
+
+/* ============================================================
+   PROFILE
+   ============================================================ */
+
+:root[data-theme="dark"] .profileNameRow h3,
+:root[data-theme="dark"] .profileStat b {
+  color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .profileRoleBadge {
+  background: rgba(139, 92, 246, 0.16) !important;
+  color: #c4b5fd !important;
+}
+
+:root[data-theme="dark"] .profileDetail,
+:root[data-theme="dark"] .profileStatusLine,
+:root[data-theme="dark"] .profileStat small,
+:root[data-theme="dark"] .profileStat div > span {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .profileStats {
+  background: #0f172a !important;
+  border-color: #263247 !important;
+}
+
+:root[data-theme="dark"] .profileStat {
+  border-color: #263247 !important;
+}
+
+:root[data-theme="dark"] .profileStatIcon,
+:root[data-theme="dark"] .profileSectionHeading > span,
+:root[data-theme="dark"] .profileActionIcon,
+:root[data-theme="dark"] .profileAbout > span {
+  background: rgba(139, 92, 246, 0.14) !important;
+  color: #c4b5fd !important;
+}
+
+:root[data-theme="dark"] .profileStatIcon.success {
+  background: rgba(34, 197, 94, 0.12) !important;
+  color: #86efac !important;
+}
+
+:root[data-theme="dark"] .profileDivider {
+  background: #263247 !important;
+}
+
+/* ============================================================
+   INLINE LIGHT SURFACES
+   ------------------------------------------------------------
+   A few profile/auth elements use inline light colors in JSX.
+   These targeted selectors only change their appearance in
+   dark mode and do not alter component behavior.
+   ============================================================ */
+
+:root[data-theme="dark"] [style*="#ffffff"],
+:root[data-theme="dark"] [style*="#FFFFFF"],
+:root[data-theme="dark"] [style*="#f8fafc"],
+:root[data-theme="dark"] [style*="#faf9fc"],
+:root[data-theme="dark"] [style*="#fbfaff"],
+:root[data-theme="dark"] [style*="#f7f5fa"] {
+  background-color: #111827 !important;
+  color: #e5e7eb !important;
+}
+
+:root[data-theme="dark"] [style*="#0f172a"] {
+  color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] [style*="#64748b"],
+:root[data-theme="dark"] [style*="#475569"],
+:root[data-theme="dark"] [style*="#8290a8"] {
+  color: #94a3b8 !important;
+}
+
+/* ============================================================
+   AUTH / LOGIN
+   ============================================================ */
+
+:root[data-theme="dark"] .auth-loading,
+:root[data-theme="dark"] .login-page {
+  background: #0b1020 !important;
+  color: #e5e7eb !important;
+}
+
+:root[data-theme="dark"] .login-card {
+  background: #111827 !important;
+  border-color: #263247 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38) !important;
+}
+
+:root[data-theme="dark"] .login-header h2,
+:root[data-theme="dark"] .login-header p,
+:root[data-theme="dark"] .login-form .form-group label,
+:root[data-theme="dark"] .login-footer,
+:root[data-theme="dark"] .login-create-account {
+  color: #e5e7eb !important;
+}
+
+:root[data-theme="dark"] .login-divider {
+  background: #263247 !important;
+}
+
+:root[data-theme="dark"] .login-create-link {
+  color: #a78bfa !important;
+}
+
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+
+:root[data-theme="dark"] * {
+  scrollbar-color: #475569 #0f172a;
+}
+
+:root[data-theme="dark"] .modal::-webkit-scrollbar-track,
+:root[data-theme="dark"] .deliveryModal::-webkit-scrollbar-track,
+:root[data-theme="dark"] .repositoryWizardPanel::-webkit-scrollbar-track {
+  background: #0f172a !important;
+}
+
+:root[data-theme="dark"] .modal::-webkit-scrollbar-thumb,
+:root[data-theme="dark"] .deliveryModal::-webkit-scrollbar-thumb,
+:root[data-theme="dark"] .repositoryWizardPanel::-webkit-scrollbar-thumb {
+  background: #475569 !important;
+}
+
+:root[data-theme="dark"] .modal::-webkit-scrollbar-thumb:hover,
+:root[data-theme="dark"] .deliveryModal::-webkit-scrollbar-thumb:hover,
+:root[data-theme="dark"] .repositoryWizardPanel::-webkit-scrollbar-thumb:hover {
+  background: #64748b !important;
 }

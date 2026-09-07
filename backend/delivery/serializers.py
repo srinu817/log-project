@@ -402,6 +402,9 @@ class RepositorySerializer(
         the normal RepositoryConfig response.
 
         The actual token is NEVER included.
+
+        The username is safe to return because it is
+        not the secret PAT itself.
         """
 
         data = super().to_representation(
@@ -663,6 +666,19 @@ class RepositorySerializer(
     ):
         """
         Validate repository and authentication configuration.
+
+        IMPORTANT UPDATE:
+
+        When editing an existing repository configured
+        with PAT authentication, an omitted/blank username
+        can now safely fall back to the username already
+        stored with the repository credential.
+
+        This prevents an existing valid PAT configuration
+        from failing simply because the frontend does not
+        resend the username during an edit.
+
+        New PAT repositories still require a username.
         """
 
         repository_type = attrs.get(
@@ -735,12 +751,47 @@ class RepositorySerializer(
 
         auth_type = attrs.get(
             "auth_type",
-            RepositoryCredential.AuthType.NONE,
+            None,
         )
+
+        existing_credential = None
+
+        if self.instance:
+
+            existing_credential = getattr(
+                self.instance,
+                "credential",
+                None,
+            )
+
+        # ------------------------------------------------------
+        # PATCH/EDIT WITH AUTH TYPE OMITTED
+        # ------------------------------------------------------
+        #
+        # If this is an existing repository and the frontend
+        # does not send auth_type, preserve the existing
+        # authentication type instead of accidentally treating
+        # the update as NONE.
+        #
+
+        if (
+            auth_type is None
+            and existing_credential
+        ):
+
+            auth_type = (
+                existing_credential.auth_type
+            )
+
+        if auth_type is None:
+
+            auth_type = (
+                RepositoryCredential.AuthType.NONE
+            )
 
         username = attrs.get(
             "username",
-            "",
+            None,
         )
 
         access_token = attrs.get(
@@ -756,16 +807,6 @@ class RepositorySerializer(
             auth_type
             == RepositoryCredential.AuthType.PAT
         ):
-
-            existing_credential = None
-
-            if self.instance:
-
-                existing_credential = getattr(
-                    self.instance,
-                    "credential",
-                    None,
-                )
 
             has_existing_token = bool(
                 existing_credential
@@ -788,6 +829,31 @@ class RepositorySerializer(
                     }
                 )
 
+            # --------------------------------------------------
+            # PRESERVE EXISTING USERNAME DURING EDIT
+            # --------------------------------------------------
+
+            if (
+                not username
+                and existing_credential
+            ):
+
+                username = (
+                    existing_credential.username
+                )
+
+            username = str(
+                username or ""
+            ).strip()
+
+            # Put the preserved username back into attrs
+            # so update() receives the same value.
+            attrs["username"] = username
+
+            # --------------------------------------------------
+            # NEW REPOSITORY OR MISSING USERNAME
+            # --------------------------------------------------
+
             if not username:
 
                 raise serializers.ValidationError(
@@ -809,7 +875,6 @@ class RepositorySerializer(
         ):
 
             attrs["username"] = ""
-
             attrs["access_token"] = ""
 
         return attrs
@@ -905,7 +970,10 @@ class RepositorySerializer(
             3. PAT selected + blank PAT + no credential:
                reject the update clearly.
 
-            4. NONE selected:
+            4. PAT selected + username omitted:
+               preserve the existing username.
+
+            5. NONE selected:
                clear any stored credential.
         """
 

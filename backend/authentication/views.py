@@ -21,6 +21,11 @@ from rest_framework_simplejwt.tokens import (
     RefreshToken,
 )
 
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
+
 from .throttles import (
     LoginRateThrottle,
     SignupRateThrottle,
@@ -36,15 +41,31 @@ from .permissions import (
     IsUserManagementRole,
 )
 
-from .models import User
+from .models import (
+    User,
+    UserSettings,
+)
 
 from .serializers import (
     LoginSerializer,
     SignupSerializer,
     PasswordResetSerializer,
     UserSerializer,
+    UserSettingsSerializer,
     AdminUserCreateSerializer,
     AdminUserUpdateSerializer,
+)
+
+# ============================================================
+# AUDIT LOGGING
+# ============================================================
+
+from delivery.models import (
+    AuditLog,
+)
+
+from delivery.audit_service import (
+    AuditService,
 )
 
 
@@ -81,20 +102,6 @@ class LoginView(APIView):
 
         # ------------------------------------------------------
         # DJANGO SUPERUSER -> APPLICATION ADMIN
-        #
-        # Django's is_superuser flag and our custom `role`
-        # field are separate.
-        #
-        # If an existing Django superuser accidentally has:
-        #
-        #     role = USER
-        #
-        # we automatically synchronize it to:
-        #
-        #     role = ADMIN
-        #
-        # This prevents a Django superuser from being treated
-        # like a normal application USER.
         # ------------------------------------------------------
 
         if user.is_superuser:
@@ -124,6 +131,36 @@ class LoginView(APIView):
             user
         )
 
+        # ------------------------------------------------------
+        # AUDIT LOGIN
+        # ------------------------------------------------------
+
+        try:
+
+            AuditService.log(
+                request=request,
+                user=user,
+                action="USER_LOGIN",
+                resource="authentication",
+                resource_id=str(
+                    user.id
+                ),
+                metadata={
+                    "username": user.username,
+                    "role": user.role,
+                },
+            )
+
+        except Exception as exc:
+
+            # Audit failure must never prevent
+            # successful authentication.
+
+            print(
+                "[AUDIT LOGIN ERROR]",
+                exc,
+            )
+
         return Response(
             {
                 "message": (
@@ -148,7 +185,7 @@ class LoginView(APIView):
 
 
 # ============================================================
-# CURRENT USER
+# CURRENT USER / PROFILE
 # ============================================================
 
 class MeView(APIView):
@@ -156,6 +193,10 @@ class MeView(APIView):
     permission_classes = [
         IsAuthenticated
     ]
+
+    # ----------------------------------------------------------
+    # GET PROFILE
+    # ----------------------------------------------------------
 
     def get(
         self,
@@ -199,6 +240,849 @@ class MeView(APIView):
             status=status.HTTP_200_OK,
         )
 
+    # ----------------------------------------------------------
+    # EDIT OWN PROFILE
+    # ----------------------------------------------------------
+
+    def patch(
+        self,
+        request,
+    ):
+
+        user = request.user
+
+        # ------------------------------------------------------
+        # PROFILE FIELDS ONLY
+        #
+        # role and is_active are read-only in UserSerializer.
+        #
+        # Password is deliberately NOT handled here.
+        # ------------------------------------------------------
+
+        allowed_fields = {
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+        }
+
+        submitted_fields = set(
+            request.data.keys()
+        )
+
+        forbidden_fields = (
+            submitted_fields
+            - allowed_fields
+        )
+
+        if forbidden_fields:
+
+            return Response(
+                {
+                    "error": (
+                        "The following fields cannot "
+                        "be changed from your profile: "
+                        + ", ".join(
+                            sorted(
+                                forbidden_fields
+                            )
+                        )
+                    ),
+                    "fields": sorted(
+                        forbidden_fields
+                    ),
+                },
+
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ------------------------------------------------------
+        # DUPLICATE USERNAME
+        # ------------------------------------------------------
+
+        if "username" in request.data:
+
+            username = str(
+                request.data.get(
+                    "username",
+                    "",
+                )
+                or ""
+            ).strip()
+
+            if not username:
+
+                return Response(
+                    {
+                        "error": (
+                            "Username is required."
+                        ),
+                        "field": "username",
+                    },
+
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            duplicate_username = (
+                User.objects
+                .filter(
+                    username__iexact=username
+                )
+                .exclude(
+                    pk=user.pk
+                )
+                .exists()
+            )
+
+            if duplicate_username:
+
+                return Response(
+                    {
+                        "error": (
+                            "Username already exists."
+                        ),
+                        "field": "username",
+                        "code": (
+                            "USERNAME_EXISTS"
+                        ),
+                    },
+
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            request.data._mutable = True
+
+            request.data[
+                "username"
+            ] = username
+
+        # ------------------------------------------------------
+        # DUPLICATE EMAIL
+        # ------------------------------------------------------
+
+        if "email" in request.data:
+
+            email = str(
+                request.data.get(
+                    "email",
+                    "",
+                )
+                or ""
+            ).strip().lower()
+
+            if not email:
+
+                return Response(
+                    {
+                        "error": (
+                            "Email address is required."
+                        ),
+                        "field": "email",
+                    },
+
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            duplicate_email = (
+                User.objects
+                .filter(
+                    email__iexact=email
+                )
+                .exclude(
+                    pk=user.pk
+                )
+                .exists()
+            )
+
+            if duplicate_email:
+
+                return Response(
+                    {
+                        "error": (
+                            "Email already exists."
+                        ),
+                        "field": "email",
+                        "code": (
+                            "EMAIL_EXISTS"
+                        ),
+                    },
+
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            request.data[
+                "email"
+            ] = email
+
+        # ------------------------------------------------------
+        # CAPTURE ORIGINAL VALUES
+        # ------------------------------------------------------
+
+        original_values = {
+            "username": user.username,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        }
+
+        # ------------------------------------------------------
+        # UPDATE PROFILE
+        # ------------------------------------------------------
+
+        serializer = UserSerializer(
+            user,
+            data=request.data,
+            partial=True,
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        updated_user = serializer.save()
+
+        # ------------------------------------------------------
+        # DETERMINE ACTUAL CHANGES
+        # ------------------------------------------------------
+
+        changed_fields = []
+
+        for field in allowed_fields:
+
+            old_value = original_values.get(
+                field
+            )
+
+            new_value = getattr(
+                updated_user,
+                field,
+            )
+
+            if old_value != new_value:
+
+                changed_fields.append(
+                    field
+                )
+
+        # ------------------------------------------------------
+        # AUDIT PROFILE CHANGE
+        # ------------------------------------------------------
+
+        if changed_fields:
+
+            try:
+
+                AuditService.log(
+                    request=request,
+                    user=updated_user,
+                    action="PROFILE_UPDATED",
+                    resource="user",
+                    resource_id=str(
+                        updated_user.id
+                    ),
+                    metadata={
+                        "changed_fields": (
+                            changed_fields
+                        ),
+                    },
+                )
+
+            except Exception as exc:
+
+                print(
+                    "[AUDIT PROFILE UPDATE ERROR]",
+                    exc,
+                )
+
+        return Response(
+            {
+                "message": (
+                    "Profile updated successfully."
+                ),
+
+                "user": UserSerializer(
+                    updated_user
+                ).data,
+            },
+
+            status=status.HTTP_200_OK,
+        )
+
+
+# ============================================================
+# USER SETTINGS
+# ============================================================
+
+class SettingsView(APIView):
+    """
+    Get and update application settings for the authenticated
+    user.
+
+    Each user has one UserSettings record.
+
+    GET:
+        Returns the current user's application settings.
+
+    PATCH:
+        Updates only the submitted settings fields.
+
+    Settings are separate from the user's profile so that
+    authentication/profile information and application
+    preferences remain independent.
+    """
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    # ----------------------------------------------------------
+    # GET SETTINGS
+    # ----------------------------------------------------------
+
+    def get(
+        self,
+        request,
+    ):
+
+        settings, created = (
+            UserSettings.objects.get_or_create(
+                user=request.user
+            )
+        )
+
+        serializer = UserSettingsSerializer(
+            settings
+        )
+
+        return Response(
+            {
+                "settings": serializer.data
+            },
+
+            status=status.HTTP_200_OK,
+        )
+
+    # ----------------------------------------------------------
+    # UPDATE SETTINGS
+    # ----------------------------------------------------------
+
+    def patch(
+        self,
+        request,
+    ):
+
+        settings, created = (
+            UserSettings.objects.get_or_create(
+                user=request.user
+            )
+        )
+
+        # ------------------------------------------------------
+        # CAPTURE ORIGINAL VALUES
+        #
+        # These are used only for audit information.
+        # Notification recipients are intentionally not
+        # included in audit metadata.
+        # ------------------------------------------------------
+
+        original_values = {
+            "theme": settings.theme,
+            "font": settings.font,
+            "language": settings.language,
+            "default_repository": (
+                settings.default_repository_id
+            ),
+            "default_delivery_mode": (
+                settings.default_delivery_mode
+            ),
+            "items_per_page": (
+                settings.items_per_page
+            ),
+            "confirm_before_delivery": (
+                settings.confirm_before_delivery
+            ),
+            "auto_refresh_dashboard": (
+                settings.auto_refresh_dashboard
+            ),
+            "auto_refresh_interval": (
+                settings.auto_refresh_interval
+            ),
+            "successful_deliveries": (
+                settings.successful_deliveries
+            ),
+            "failed_deliveries": (
+                settings.failed_deliveries
+            ),
+            "dry_run_completions": (
+                settings.dry_run_completions
+            ),
+            "repository_connection_failures": (
+                settings.repository_connection_failures
+            ),
+            "notification_recipients": (
+                list(
+                    settings.notification_recipients
+                    or []
+                )
+            ),
+        }
+
+        # ------------------------------------------------------
+        # UPDATE SETTINGS
+        # ------------------------------------------------------
+
+        serializer = UserSettingsSerializer(
+            settings,
+            data=request.data,
+            partial=True,
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        updated_settings = serializer.save()
+
+        # ------------------------------------------------------
+        # DETERMINE ACTUAL CHANGES
+        # ------------------------------------------------------
+
+        changed_fields = []
+
+        for field in original_values:
+
+            if field == "default_repository":
+
+                old_value = original_values[
+                    field
+                ]
+
+                new_value = (
+                    updated_settings
+                    .default_repository_id
+                )
+
+            elif field == "notification_recipients":
+
+                old_value = original_values[
+                    field
+                ]
+
+                new_value = list(
+                    updated_settings
+                    .notification_recipients
+                    or []
+                )
+
+            else:
+
+                old_value = original_values[
+                    field
+                ]
+
+                new_value = getattr(
+                    updated_settings,
+                    field,
+                )
+
+            if old_value != new_value:
+
+                changed_fields.append(
+                    field
+                )
+
+        # ------------------------------------------------------
+        # AUDIT SETTINGS CHANGE
+        # ------------------------------------------------------
+
+        if changed_fields:
+
+            try:
+
+                AuditService.log(
+                    request=request,
+                    user=request.user,
+                    action="SETTINGS_UPDATED",
+                    resource="user_settings",
+                    resource_id=str(
+                        updated_settings.id
+                    ),
+                    metadata={
+                        "changed_fields": (
+                            changed_fields
+                        ),
+                    },
+                )
+
+            except Exception as exc:
+
+                print(
+                    "[AUDIT SETTINGS UPDATE ERROR]",
+                    exc,
+                )
+
+        return Response(
+            {
+                "message": (
+                    "Settings updated successfully."
+                ),
+
+                "settings": UserSettingsSerializer(
+                    updated_settings
+                ).data,
+            },
+
+            status=status.HTTP_200_OK,
+        )
+
+
+# ============================================================
+# AUDIT LOGS
+# ============================================================
+
+class AuditLogListView(APIView):
+    """
+    ADMIN + MANAGER can view application audit logs.
+
+    USER cannot access audit logs.
+
+    Optional query parameters:
+
+        ?action=PROFILE_UPDATED
+
+        ?resource=user
+
+        ?user_id=1
+    """
+
+    permission_classes = [
+        IsUserManagementRole
+    ]
+
+    def get(
+        self,
+        request,
+    ):
+
+        queryset = (
+            AuditLog.objects
+            .select_related("user")
+            .order_by("-timestamp")
+        )
+
+        # ------------------------------------------------------
+        # FILTER BY ACTION
+        # ------------------------------------------------------
+
+        action = (
+            request.query_params
+            .get(
+                "action"
+            )
+        )
+
+        if action:
+
+            queryset = queryset.filter(
+                action=action.strip()
+            )
+
+        # ------------------------------------------------------
+        # FILTER BY RESOURCE
+        # ------------------------------------------------------
+
+        resource = (
+            request.query_params
+            .get(
+                "resource"
+            )
+        )
+
+        if resource:
+
+            queryset = queryset.filter(
+                resource=resource.strip()
+            )
+
+        # ------------------------------------------------------
+        # FILTER BY USER
+        # ------------------------------------------------------
+
+        user_id = (
+            request.query_params
+            .get(
+                "user_id"
+            )
+        )
+
+        if user_id:
+
+            try:
+
+                queryset = queryset.filter(
+                    user_id=int(
+                        user_id
+                    )
+                )
+
+            except (
+                TypeError,
+                ValueError,
+            ):
+
+                return Response(
+                    {
+                        "error": (
+                            "user_id must be a valid "
+                            "integer."
+                        )
+                    },
+
+                    status=(
+                        status.HTTP_400_BAD_REQUEST
+                    ),
+                )
+
+        # ------------------------------------------------------
+        # LIMIT RESULT SIZE
+        #
+        # This keeps the first version lightweight.
+        # Pagination can be added later.
+        # ------------------------------------------------------
+
+        try:
+
+            limit = int(
+                request.query_params.get(
+                    "limit",
+                    100,
+                )
+            )
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+
+            limit = 100
+
+        limit = max(
+            1,
+            min(
+                limit,
+                500,
+            )
+        )
+
+        logs = queryset[:limit]
+
+        # ------------------------------------------------------
+        # SAFE RESPONSE
+        # ------------------------------------------------------
+
+        data = []
+
+        for log in logs:
+
+            data.append(
+                {
+                    "id": log.id,
+
+                    "action": (
+                        log.action
+                    ),
+
+                    "resource": (
+                        log.resource
+                    ),
+
+                    "resource_id": (
+                        log.resource_id
+                    ),
+
+                    "timestamp": (
+                        log.timestamp
+                    ),
+
+                    "ip_address": (
+                        log.ip_address
+                    ),
+
+                    "user": (
+                        {
+                            "id": (
+                                log.user.id
+                                if log.user
+                                else None
+                            ),
+
+                            "username": (
+                                log.user.username
+                                if log.user
+                                else None
+                            ),
+
+                            "role": (
+                                log.user.role
+                                if log.user
+                                else None
+                            ),
+                        }
+                    ),
+
+                    "metadata": (
+                        AuditService.sanitize_metadata(
+                            log.metadata
+                            or {}
+                        )
+                    ),
+                }
+            )
+
+        return Response(
+            data,
+            status=status.HTTP_200_OK,
+        )
+
+    # ----------------------------------------------------------
+    # DELETE AUDIT LOG
+    #
+    # ADMIN ONLY
+    #
+    # Example:
+    #
+    # DELETE /api/auth/audit-logs/?id=123
+    #
+    # MANAGER can view audit logs but cannot delete them.
+    # USER cannot access audit logs at all.
+    # ----------------------------------------------------------
+
+    def delete(
+        self,
+        request,
+    ):
+
+        # ------------------------------------------------------
+        # ADMIN ONLY
+        # ------------------------------------------------------
+
+        if (
+            request.user.role
+            != User.Role.ADMIN
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "Only administrators can "
+                        "delete audit logs."
+                    ),
+                    "code": (
+                        "AUDIT_DELETE_FORBIDDEN"
+                    ),
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # ------------------------------------------------------
+        # GET AUDIT LOG ID
+        # ------------------------------------------------------
+
+        audit_log_id = (
+            request.query_params
+            .get("id")
+        )
+
+        if not audit_log_id:
+
+            return Response(
+                {
+                    "error": (
+                        "Audit log id is required."
+                    ),
+                    "field": "id",
+                },
+
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ------------------------------------------------------
+        # VALIDATE ID
+        # ------------------------------------------------------
+
+        try:
+
+            audit_log_id = int(
+                audit_log_id
+            )
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "Audit log id must be "
+                        "a valid integer."
+                    ),
+                    "field": "id",
+                },
+
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ------------------------------------------------------
+        # FIND AUDIT LOG
+        # ------------------------------------------------------
+
+        try:
+
+            audit_log = AuditLog.objects.get(
+                pk=audit_log_id
+            )
+
+        except AuditLog.DoesNotExist:
+
+            return Response(
+                {
+                    "error": (
+                        "Audit log not found."
+                    ),
+                    "code": (
+                        "AUDIT_LOG_NOT_FOUND"
+                    ),
+                },
+
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # ------------------------------------------------------
+        # DELETE
+        #
+        # IMPORTANT:
+        # We intentionally do NOT create another audit entry
+        # for deleting an audit entry. Otherwise the audit trail
+        # could become self-referential and confusing.
+        # ------------------------------------------------------
+
+        deleted_id = audit_log.id
+
+        audit_log.delete()
+
+        return Response(
+            {
+                "message": (
+                    "Audit log deleted successfully."
+                ),
+                "deleted_id": deleted_id,
+            },
+
+            status=status.HTTP_200_OK,
+        )
+
 
 # ============================================================
 # SIGNUP
@@ -236,6 +1120,33 @@ class SignupView(APIView):
         # ------------------------------------------------------
 
         user = serializer.save()
+
+        # ------------------------------------------------------
+        # AUDIT SIGNUP
+        # ------------------------------------------------------
+
+        try:
+
+            AuditService.log(
+                request=request,
+                user=user,
+                action="USER_SIGNUP",
+                resource="user",
+                resource_id=str(
+                    user.id
+                ),
+                metadata={
+                    "username": user.username,
+                    "role": user.role,
+                },
+            )
+
+        except Exception as exc:
+
+            print(
+                "[AUDIT SIGNUP ERROR]",
+                exc,
+            )
 
         # ------------------------------------------------------
         # WELCOME EMAIL
@@ -287,9 +1198,6 @@ class SignupView(APIView):
             #
             # Account creation must NOT fail just because
             # SMTP/email delivery failed.
-            #
-            # The exception is logged to the server console,
-            # while the API still returns successful signup.
             # --------------------------------------------------
 
             print(
@@ -351,6 +1259,34 @@ class LogoutView(APIView):
 
             token.blacklist()
 
+            # --------------------------------------------------
+            # AUDIT LOGOUT
+            # --------------------------------------------------
+
+            try:
+
+                AuditService.log(
+                    request=request,
+                    user=request.user,
+                    action="USER_LOGOUT",
+                    resource="authentication",
+                    resource_id=str(
+                        request.user.id
+                    ),
+                    metadata={
+                        "username": (
+                            request.user.username
+                        ),
+                    },
+                )
+
+            except Exception as exc:
+
+                print(
+                    "[AUDIT LOGOUT ERROR]",
+                    exc,
+                )
+
             return Response(
                 {
                     "message": (
@@ -373,6 +1309,64 @@ class LogoutView(APIView):
 
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+# ============================================================
+# SIGN OUT ALL SESSIONS
+# ============================================================
+
+class SignOutAllSessionsView(APIView):
+    """Invalidate every refresh token owned by the authenticated user.
+
+    Access tokens remain valid only until their short configured expiry.  The
+    client clears its local credentials immediately after this endpoint
+    succeeds, while all other devices lose the ability to refresh sessions.
+    """
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def post(
+        self,
+        request,
+    ):
+        revoked = 0
+
+        for token in OutstandingToken.objects.filter(
+            user=request.user
+        ):
+            _, created = BlacklistedToken.objects.get_or_create(
+                token=token
+            )
+
+            if created:
+                revoked += 1
+
+        try:
+            AuditService.log(
+                request=request,
+                user=request.user,
+                action="USER_SESSIONS_REVOKED",
+                resource="authentication",
+                resource_id=str(request.user.id),
+                metadata={
+                    "revoked_refresh_tokens": revoked,
+                },
+            )
+        except Exception as exc:
+            print(
+                "[AUDIT SESSION REVOKE ERROR]",
+                exc,
+            )
+
+        return Response(
+            {
+                "message": "All active sessions were signed out.",
+                "revoked_refresh_tokens": revoked,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 # ============================================================
@@ -529,9 +1523,6 @@ class ResetPasswordView(APIView):
         1. Password is changed.
         2. Fresh JWT tokens are created.
         3. User information is returned.
-
-    This allows the frontend to immediately redirect to
-    the Dashboard.
     """
 
     permission_classes = [
@@ -645,6 +1636,30 @@ class ResetPasswordView(APIView):
                 "updated_at",
             ]
         )
+
+        # ------------------------------------------------------
+        # AUDIT PASSWORD RESET
+        # ------------------------------------------------------
+
+        try:
+
+            AuditService.log(
+                request=request,
+                user=user,
+                action="PASSWORD_RESET",
+                resource="user",
+                resource_id=str(
+                    user.id
+                ),
+                metadata={},
+            )
+
+        except Exception as exc:
+
+            print(
+                "[AUDIT PASSWORD RESET ERROR]",
+                exc,
+            )
 
         # ------------------------------------------------------
         # CREATE NEW JWT SESSION
@@ -802,6 +1817,37 @@ class UserManagementListView(APIView):
         )
 
         user = serializer.save()
+
+        # ------------------------------------------------------
+        # AUDIT USER CREATION
+        # ------------------------------------------------------
+
+        try:
+
+            AuditService.log(
+                request=request,
+                user=request.user,
+                action="USER_CREATED",
+                resource="user",
+                resource_id=str(
+                    user.id
+                ),
+                metadata={
+                    "created_username": (
+                        user.username
+                    ),
+                    "created_role": (
+                        user.role
+                    ),
+                },
+            )
+
+        except Exception as exc:
+
+            print(
+                "[AUDIT USER CREATE ERROR]",
+                exc,
+            )
 
         # ------------------------------------------------------
         # WELCOME EMAIL
@@ -1028,6 +2074,19 @@ class UserManagementDetailView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        # ------------------------------------------------------
+        # CAPTURE ORIGINAL VALUES
+        # ------------------------------------------------------
+
+        original_values = {
+            "username": user.username,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "role": user.role,
+            "is_active": user.is_active,
+        }
+
         serializer = AdminUserUpdateSerializer(
             user,
             data=request.data,
@@ -1039,6 +2098,59 @@ class UserManagementDetailView(APIView):
         )
 
         updated_user = serializer.save()
+
+        # ------------------------------------------------------
+        # DETERMINE CHANGES
+        # ------------------------------------------------------
+
+        changed_fields = []
+
+        for field in original_values:
+
+            old_value = original_values.get(
+                field
+            )
+
+            new_value = getattr(
+                updated_user,
+                field,
+            )
+
+            if old_value != new_value:
+
+                changed_fields.append(
+                    field
+                )
+
+        # ------------------------------------------------------
+        # AUDIT USER UPDATE
+        # ------------------------------------------------------
+
+        if changed_fields:
+
+            try:
+
+                AuditService.log(
+                    request=request,
+                    user=request.user,
+                    action="USER_UPDATED",
+                    resource="user",
+                    resource_id=str(
+                        updated_user.id
+                    ),
+                    metadata={
+                        "changed_fields": (
+                            changed_fields
+                        ),
+                    },
+                )
+
+            except Exception as exc:
+
+                print(
+                    "[AUDIT USER UPDATE ERROR]",
+                    exc,
+                )
 
         return Response(
             {

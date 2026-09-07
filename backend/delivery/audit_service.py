@@ -1,6 +1,4 @@
-from django.utils import timezone
-
-from ..models import AuditLog
+from .models import AuditLog
 
 
 class AuditService:
@@ -25,19 +23,45 @@ class AuditService:
     SENSITIVE_KEYS = {
         "password",
         "password_confirm",
+
         "access_token",
         "refresh",
         "refresh_token",
         "token",
+
         "secret",
         "secret_key",
+
         "encrypted_token",
+
         "smtp_password",
         "smtp_username",
+
         "api_key",
+
         "authorization",
         "cookie",
         "session",
+
+        # ------------------------------------------------------
+        # REPOSITORY CREDENTIALS
+        # ------------------------------------------------------
+
+        "credential",
+        "credentials",
+
+        "pat",
+        "personal_access_token",
+
+        "private_key",
+        "ssh_key",
+
+        # ------------------------------------------------------
+        # APPLICATION SECRETS
+        # ------------------------------------------------------
+
+        "django_secret_key",
+        "repository_credential_key",
     }
 
     @classmethod
@@ -57,6 +81,10 @@ class AuditService:
 
         if metadata is None:
             return {}
+
+        # ------------------------------------------------------
+        # DICTIONARY
+        # ------------------------------------------------------
 
         if isinstance(
             metadata,
@@ -90,6 +118,10 @@ class AuditService:
 
             return cleaned
 
+        # ------------------------------------------------------
+        # LIST / TUPLE
+        # ------------------------------------------------------
+
         if isinstance(
             metadata,
             (list, tuple),
@@ -101,6 +133,10 @@ class AuditService:
                 )
                 for item in metadata
             ]
+
+        # ------------------------------------------------------
+        # PRIMITIVE
+        # ------------------------------------------------------
 
         return metadata
 
@@ -184,7 +220,14 @@ class AuditService:
                 are recursively redacted.
         """
 
-        if user is None and request is not None:
+        # ------------------------------------------------------
+        # RESOLVE USER FROM REQUEST
+        # ------------------------------------------------------
+
+        if (
+            user is None
+            and request is not None
+        ):
 
             request_user = getattr(
                 request,
@@ -203,7 +246,10 @@ class AuditService:
 
                 user = request_user
 
-        # Do not retain unsaved user objects.
+        # ------------------------------------------------------
+        # DO NOT RETAIN UNSAVED USER OBJECTS
+        # ------------------------------------------------------
+
         if (
             user is not None
             and getattr(
@@ -216,11 +262,19 @@ class AuditService:
 
             user = None
 
+        # ------------------------------------------------------
+        # SANITIZE METADATA
+        # ------------------------------------------------------
+
         safe_metadata = (
             cls.sanitize_metadata(
                 metadata
             )
         )
+
+        # ------------------------------------------------------
+        # CLIENT IP
+        # ------------------------------------------------------
 
         ip_address = (
             cls.get_client_ip(
@@ -230,20 +284,29 @@ class AuditService:
             else None
         )
 
+        # ------------------------------------------------------
+        # CREATE AUDIT RECORD
+        # ------------------------------------------------------
+
         return AuditLog.objects.create(
             user=user,
+
             action=str(
                 action
             )[:100],
+
             resource=str(
                 resource
             )[:100],
+
             resource_id=(
                 str(resource_id)
                 if resource_id is not None
                 else ""
             )[:100],
+
             ip_address=ip_address,
+
             metadata=safe_metadata,
         )
 
