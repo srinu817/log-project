@@ -32,10 +32,26 @@ import {
   Send,
   UserCircle2,
   LogOut,
+  ListChecks,
 } from "lucide-react";
 import "./styles.css";
+import Pagination from "./components/common/Pagination";
+
+import {
+  AuthProvider,
+  useAuth,
+} from "./auth/AuthContext";
 
 const API = "http://127.0.0.1:8000/api";
+
+import {
+  getCurrentLanguage,
+  setCurrentLanguage,
+  translateLegacy,
+  translateMessage,
+} from "./i18n";
+
+const t = translateLegacy;
 
 const EMPTY_REPOSITORY = {
   name: "",
@@ -69,148 +85,6 @@ const EMPTY_REPOSITORY = {
 };
 
 
-// ============================================================
-// AUTHENTICATION
-// ============================================================
-
-const ACCESS_TOKEN_KEY = "ld_access_token";
-const REFRESH_TOKEN_KEY = "ld_refresh_token";
-const AUTH_USER_KEY = "ld_auth_user";
-
-function normalizeAuthUser(value) {
-  if (!value) {
-    return null;
-  }
-
-  if (value.user && typeof value.user === "object") {
-    return value.user;
-  }
-
-  return value;
-}
-
-function getStoredAuthUser() {
-  try {
-    const value = localStorage.getItem(AUTH_USER_KEY);
-    return value
-      ? normalizeAuthUser(JSON.parse(value))
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function clearAuthStorage() {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
-}
-
-function storeAuthSession(data) {
-  if (data?.access) {
-    localStorage.setItem(
-      ACCESS_TOKEN_KEY,
-      data.access
-    );
-  }
-
-  if (data?.refresh) {
-    localStorage.setItem(
-      REFRESH_TOKEN_KEY,
-      data.refresh
-    );
-  }
-
-  if (data?.user) {
-    localStorage.setItem(
-      AUTH_USER_KEY,
-      JSON.stringify(data.user)
-    );
-  }
-}
-
-async function authFetch(url, options = {}) {
-  const requestOptions = {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-    },
-  };
-
-  const accessToken =
-    localStorage.getItem(ACCESS_TOKEN_KEY);
-
-  if (accessToken) {
-    requestOptions.headers.Authorization =
-      `Bearer ${accessToken}`;
-  }
-
-  let response = await fetch(
-    url,
-    requestOptions
-  );
-
-  if (response.status !== 401) {
-    return response;
-  }
-
-  const refreshToken =
-    localStorage.getItem(REFRESH_TOKEN_KEY);
-
-  if (!refreshToken) {
-    clearAuthStorage();
-    throw new Error(
-      "Your session has expired. Please sign in again."
-    );
-  }
-
-  const refreshResponse = await fetch(
-    `${API}/auth/refresh/`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        refresh: refreshToken,
-      }),
-    }
-  );
-
-  if (!refreshResponse.ok) {
-    clearAuthStorage();
-    throw new Error(
-      "Your session has expired. Please sign in again."
-    );
-  }
-
-  const refreshData =
-    await refreshResponse.json();
-
-  if (!refreshData.access) {
-    clearAuthStorage();
-    throw new Error(
-      "Your session has expired. Please sign in again."
-    );
-  }
-
-  localStorage.setItem(
-    ACCESS_TOKEN_KEY,
-    refreshData.access
-  );
-
-  requestOptions.headers.Authorization =
-    `Bearer ${refreshData.access}`;
-
-  response = await fetch(
-    url,
-    requestOptions
-  );
-
-  return response;
-}
-
-
 function getPasswordResetRoute() {
   const match = window.location.pathname.match(
     /^\/reset-password\/([^/]+)\/([^/]+)\/?$/
@@ -227,13 +101,109 @@ function getPasswordResetRoute() {
 function App() {
   const [page, setPage] = useState("Dashboard");
 
-  const [authUser, setAuthUser] = useState(
-    getStoredAuthUser
-  );
-  const [authLoading, setAuthLoading] =
-    useState(true);
+  // ==========================================================
+  // CENTRAL AUTH CONTEXT
+  // ==========================================================
+  //
+  // AuthContext is the single owner of access/refresh tokens
+  // and refresh-token requests. main.jsx only consumes the
+  // context and never calls /auth/refresh/ directly.
+  //
+  const {
+    user: authUser,
+    loading: authLoading,
+    logout,
+    refreshAccessToken,
+    fetchCurrentUser,
+    clearAuth,
+    accessToken,
+  } = useAuth();
+
   const [authMode, setAuthMode] =
     useState("login");
+
+  // ==========================================================
+  // AUTHENTICATED API FETCH
+  // ==========================================================
+  //
+  // main.jsx does NOT implement refresh-token requests.
+  // On a 401 it asks AuthContext to refresh. AuthContext
+  // contains the refresh-request lock, so concurrent requests
+  // share the same refresh request.
+  //
+  const authFetch = async (url, options = {}) => {
+    let token =
+      localStorage.getItem("access_token") ||
+      accessToken;
+
+    const makeOptions = (authToken) => ({
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        ...(authToken
+          ? {
+              Authorization: `Bearer ${authToken}`,
+            }
+          : {}),
+      },
+    });
+
+    let response = await fetch(
+      url,
+      makeOptions(token)
+    );
+
+    if (response.status !== 401) {
+      return response;
+    }
+
+    const newToken =
+      await refreshAccessToken();
+
+    if (!newToken) {
+      clearAuth();
+
+      throw new Error(
+        "Your session has expired. Please sign in again."
+      );
+    }
+
+    response = await fetch(
+      url,
+      makeOptions(newToken)
+    );
+
+    return response;
+  };
+
+  // ==========================================================
+  // AUTHENTICATION HANDLERS
+  // ==========================================================
+
+  const handleAuthenticated = (user) => {
+    setAuthMode("login");
+    setPage("Dashboard");
+    setNotice("");
+  };
+
+  const handleLogout = async () => {
+    setBusy(true);
+
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setBusy(false);
+      setPage("Dashboard");
+      setAuthMode("login");
+      setData(null);
+      setRepos([]);
+      setJobs([]);
+      setSelectedRepositoryId("");
+      setNotice("");
+    }
+  };
 
   // ==========================================================
   // FRONTEND RBAC
@@ -266,6 +236,23 @@ function App() {
   const [repos, setRepos] = useState([]);
   const [jobs, setJobs] = useState([]);
 
+  // ==========================================================
+  // DELIVERY HISTORY PAGINATION
+  // ==========================================================
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 10;
+
+  // ==========================================================
+  // AUDIT LOGS
+  // ==========================================================
+
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLogsLoading, setAuditLogsLoading] = useState(false);
+  const [auditActionFilter, setAuditActionFilter] = useState("");
+  const [auditResourceFilter, setAuditResourceFilter] = useState("");
+  const [deletingAuditLogId, setDeletingAuditLogId] = useState(null);
+
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
 
@@ -280,6 +267,32 @@ function App() {
 
   const [selectedRepositoryId, setSelectedRepositoryId] =
     useState("");
+
+  const selectedRepository = useMemo(() => {
+    return (
+      repos.find(
+        (repo) =>
+          String(repo.id) ===
+          String(selectedRepositoryId)
+      ) || null
+    );
+  }, [repos, selectedRepositoryId]);
+
+  // Paginate Delivery History without changing the
+  // existing jobs API or JobTable component.
+  const totalJobPages = Math.ceil(
+    jobs.length / jobsPerPage
+  );
+
+  const paginatedJobs = useMemo(() => {
+    const startIndex =
+      (currentPage - 1) * jobsPerPage;
+
+    return jobs.slice(
+      startIndex,
+      startIndex + jobsPerPage
+    );
+  }, [jobs, currentPage]);
 
   const [deliveryResult, setDeliveryResult] =
     useState(null);
@@ -310,113 +323,141 @@ function App() {
     is_active: true,
   });
 
-  useEffect(() => {
-    const accessToken =
-      localStorage.getItem(
-        ACCESS_TOKEN_KEY
-      );
+  // ==========================================================
+  // MY PROFILE
+  // ==========================================================
 
-    if (!accessToken) {
-      setAuthLoading(false);
+  const [profileFormOpen, setProfileFormOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+  });
+
+   // ==========================================================
+  // LANGUAGE + FONT PREFERENCES
+  // ==========================================================
+
+  const [selectedLanguage, setSelectedLanguage] = useState(() => {
+    return getCurrentLanguage();
+  });
+
+  const [selectedFont, setSelectedFont] = useState(() => {
+    return localStorage.getItem("ld_font") || "Inter";
+  });
+
+  const languageOptions = [
+    {
+      value: "English",
+      label: "English",
+      flag: "🇬🇧",
+    },
+    {
+      value: "Telugu",
+      label: "తెలుగు",
+      flag: "🇮🇳",
+    },
+    {
+      value: "Hindi",
+      label: "हिन्दी",
+      flag: "🇮🇳",
+    },
+  ];
+
+  const fontOptions = [
+    {
+      value: "Inter",
+      label: "Inter",
+      description: "Clean modern UI font",
+      family: "Inter, system-ui, sans-serif",
+    },
+    {
+      value: "Noto Sans",
+      label: "Noto Sans",
+      description: "Clear multilingual font",
+      family: '"Noto Sans", system-ui, sans-serif',
+    },
+    {
+      value: "Poppins",
+      label: "Poppins",
+      description: "Modern rounded font",
+      family: "Poppins, system-ui, sans-serif",
+    },
+  ];
+
+  const applySelectedFont = (fontName) => {
+    const selected = fontOptions.find(
+      (option) => option.value === fontName
+    );
+
+    if (!selected) {
       return;
     }
 
-    authFetch(`${API}/auth/me/`)
-      .then(async (response) => {
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            getApiError(result)
-          );
-        }
-
-        const user = normalizeAuthUser(result);
-
-        if (!user) {
-          throw new Error(
-            "Unable to load the authenticated user."
-          );
-        }
-
-        localStorage.setItem(
-          AUTH_USER_KEY,
-          JSON.stringify(user)
-        );
-
-        setAuthUser(user);
-      })
-      .catch(() => {
-        clearAuthStorage();
-        setAuthUser(null);
-      })
-      .finally(() => {
-        setAuthLoading(false);
-      });
-  }, []);
-
-  const handleAuthenticated = (user) => {
-    setAuthUser(user);
-    setAuthMode("login");
+    document.documentElement.style.setProperty(
+      "--app-font-family",
+      selected.family
+    );
   };
 
-  const handleLogout = async () => {
-    const refreshToken =
-      localStorage.getItem(
-        REFRESH_TOKEN_KEY
-      );
+  const handleLanguageChange = (language) => {
+    const normalizedLanguage =
+      setCurrentLanguage(language);
 
-    try {
-      if (refreshToken) {
-        await fetch(
-          `${API}/auth/logout/`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-              ...(localStorage.getItem(
-                ACCESS_TOKEN_KEY
-              )
-                ? {
-                    Authorization:
-                      `Bearer ${localStorage.getItem(
-                        ACCESS_TOKEN_KEY
-                      )}`,
-                  }
-                : {}),
-            },
-            body: JSON.stringify({
-              refresh: refreshToken,
-            }),
-          }
+    setSelectedLanguage(normalizedLanguage);
+
+    setNotice(
+      `${t("Language")} ${language}: ${t("selected")}.`
+    );
+  };
+
+  const handleFontChange = (font) => {
+    setSelectedFont(font);
+
+    localStorage.setItem(
+      "ld_font",
+      font
+    );
+
+    applySelectedFont(font);
+
+    setNotice(
+      `Font selected: ${font}.`
+    );
+  };
+
+  // Sync language changes from the centralized i18n system.
+  useEffect(() => {
+    const syncLanguagePreference = (event) => {
+      if (
+        event.key === "ld_language" &&
+        event.newValue
+      ) {
+        setSelectedLanguage(
+          getCurrentLanguage()
         );
       }
-    } catch {
-      // Logout must still clear the local session
-      // when the backend is unavailable.
-    } finally {
-      clearAuthStorage();
-      setAuthUser(null);
-      setAuthMode("login");
-      setPage("Dashboard");
-      setData(null);
-      setRepos([]);
-      setJobs([]);
-      setNotice("");
-    }
-  };
+    };
 
-  const selectedRepository = useMemo(() => {
-    return (
-      repos.find(
-        (repo) =>
-          String(repo.id) ===
-          String(selectedRepositoryId)
-      ) || null
+    window.addEventListener(
+      "storage",
+      syncLanguagePreference
     );
-  }, [repos, selectedRepositoryId]);
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        syncLanguagePreference
+      );
+    };
+  }, []);
+
+  // Apply the saved font immediately when the application starts
+  // and whenever the selected font changes.
+  useEffect(() => {
+    applySelectedFont(selectedFont);
+  }, [selectedFont]);
 
   // ==========================================================
   // LOAD DATA
@@ -463,6 +504,7 @@ function App() {
     setData(dashboard);
     setRepos(repositories);
     setJobs(deliveryJobs);
+    setCurrentPage(1);
 
     if (
       repositories.length > 0 &&
@@ -491,21 +533,162 @@ function App() {
       return;
     }
 
+    if (
+      page === "Audit Logs" &&
+      !isAdmin &&
+      !isManager
+    ) {
+      setPage("Dashboard");
+      return;
+    }
+
     load().catch((error) => {
       setNotice(
-        error.message ||
+        translateMessage(error.message) ||
           "Backend is not running. Start Django on port 8000."
       );
 
       if (
         !localStorage.getItem(
-          ACCESS_TOKEN_KEY
+          "access_token"
         )
       ) {
-        setAuthUser(null);
+        // AuthContext is responsible for clearing the session.
+        return;
       }
     });
   }, [authUser]);
+
+  // ==========================================================
+  // AUDIT LOGS
+  // ==========================================================
+
+  const loadAuditLogs = async () => {
+    if (!isAdmin && !isManager) {
+      setAuditLogs([]);
+      return;
+    }
+
+    setAuditLogsLoading(true);
+
+    try {
+      const params = new URLSearchParams();
+
+      if (auditActionFilter) {
+        params.set("action", auditActionFilter);
+      }
+
+      if (auditResourceFilter) {
+        params.set("resource", auditResourceFilter);
+      }
+
+      params.set("limit", "100");
+
+      // Django AuditLogListView endpoint.
+      const queryString = params.toString();
+      const response = await authFetch(
+        `${API}/auth/audit-logs/${queryString ? `?${queryString}` : ""}`
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(getApiError(result));
+      }
+
+      setAuditLogs(
+        Array.isArray(result)
+          ? result
+          : Array.isArray(result.logs)
+          ? result.logs
+          : Array.isArray(result.results)
+          ? result.results
+          : []
+      );
+    } catch (error) {
+      setNotice(
+        translateMessage(error.message) ||
+          "Unable to load audit logs."
+      );
+    } finally {
+      setAuditLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      authUser &&
+      (isAdmin || isManager) &&
+      page === "Audit Logs"
+    ) {
+      loadAuditLogs();
+    }
+  }, [
+    authUser,
+    isAdmin,
+    isManager,
+    page,
+    auditActionFilter,
+    auditResourceFilter,
+  ]);
+
+  const deleteAuditLog = async (log) => {
+    if (!isAdmin) {
+      setNotice(
+        "Administrator access is required to delete audit logs."
+      );
+      return;
+    }
+
+    if (!log?.id) {
+      setNotice("Unable to identify the audit log.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `${t("Delete audit log")} #${log.id}? ${t("This action cannot be undone.")}`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingAuditLogId(log.id);
+    setNotice("");
+
+    try {
+      const response = await authFetch(
+        `${API}/auth/audit-logs/?id=${encodeURIComponent(log.id)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(getApiError(result));
+      }
+
+      setAuditLogs((previous) =>
+        previous.filter(
+          (item) => String(item.id) !== String(log.id)
+        )
+      );
+
+      setNotice(
+        result.message ||
+          `Audit log #${log.id} deleted successfully.`
+      );
+    } catch (error) {
+      setNotice(
+        translateMessage(error.message) ||
+          "Unable to delete audit log."
+      );
+    } finally {
+      setDeletingAuditLogId(null);
+    }
+  };
 
   // ==========================================================
   // USER MANAGEMENT
@@ -551,7 +734,7 @@ function App() {
       );
     } catch (error) {
       setNotice(
-        error.message ||
+        translateMessage(error.message) ||
           "Unable to load users."
       );
     } finally {
@@ -752,7 +935,7 @@ function App() {
       await loadManagedUsers();
     } catch (error) {
       setNotice(
-        error.message ||
+        translateMessage(error.message) ||
           "Unable to save user."
       );
     } finally {
@@ -825,8 +1008,104 @@ function App() {
       await loadManagedUsers();
     } catch (error) {
       setNotice(
-        error.message ||
+        translateMessage(error.message) ||
           "Unable to update user status."
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ==========================================================
+  // MY PROFILE
+  // ==========================================================
+
+  const openProfileEdit = () => {
+    if (!authUser) {
+      return;
+    }
+
+    setProfileForm({
+      username: authUser.username || "",
+      email: authUser.email || "",
+      first_name: authUser.first_name || "",
+      last_name: authUser.last_name || "",
+    });
+
+    setProfileFormOpen(true);
+    setNotice("");
+  };
+
+  const closeProfileEdit = () => {
+    if (busy) {
+      return;
+    }
+
+    setProfileFormOpen(false);
+  };
+
+  const updateProfileField = (field, value) => {
+    setProfileForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const saveMyProfile = async (event) => {
+    event.preventDefault();
+
+    if (!authUser?.id) {
+      setNotice("Unable to identify the authenticated user.");
+      return;
+    }
+
+    setBusy(true);
+    setNotice("");
+
+    try {
+      const payload = {
+        email: profileForm.email.trim(),
+        first_name: profileForm.first_name.trim(),
+        last_name: profileForm.last_name.trim(),
+      };
+
+      const response = await authFetch(
+        `${API}/auth/me/`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(getApiError(result));
+      }
+
+      const updatedUser = result?.user || result;
+
+      if (!updatedUser) {
+        throw new Error(
+          "Profile was updated, but the updated user could not be loaded."
+        );
+      }
+
+      // Keep AuthContext as the source of truth for the
+      // authenticated user after a profile update.
+      await fetchCurrentUser(
+        localStorage.getItem("access_token")
+      );
+
+      setProfileFormOpen(false);
+      setNotice("Profile updated successfully.");
+    } catch (error) {
+      setNotice(
+        translateMessage(error.message) ||
+          "Unable to update your profile."
       );
     } finally {
       setBusy(false);
@@ -992,8 +1271,8 @@ function App() {
         .catch((error) => {
           setBranches([]);
           setBranchesError(
-            error.message ||
-              "Unable to fetch repository branches."
+            translateMessage(error.message) ||
+              t("Unable to fetch repository branches.")
           );
         });
     }
@@ -1318,7 +1597,7 @@ function App() {
       }
     } catch (error) {
       setNotice(
-        error.message ||
+        translateMessage(error.message) ||
           "Unable to save repository."
       );
     } finally {
@@ -1380,8 +1659,8 @@ function App() {
     } catch (error) {
       setBranches([]);
       setBranchesError(
-        error.message ||
-          "Unable to fetch repository branches."
+        translateMessage(error.message) ||
+          t("Unable to fetch repository branches.")
       );
     } finally {
       setBranchesLoading(false);
@@ -1441,12 +1720,12 @@ function App() {
       setConnectionResult({
         success: false,
         message:
-          error.message ||
-          "Repository connection failed.",
+          translateMessage(error.message) ||
+          t("Repository connection failed."),
       });
 
       setNotice(
-        error.message ||
+        translateMessage(error.message) ||
           "Repository connection failed."
       );
     } finally {
@@ -1523,7 +1802,7 @@ function App() {
       await load();
     } catch (error) {
       setNotice(
-        error.message ||
+        translateMessage(error.message) ||
           "Unable to deactivate repository."
       );
     } finally {
@@ -1601,7 +1880,7 @@ function App() {
       await load();
     } catch (error) {
       setNotice(
-        error.message ||
+        translateMessage(error.message) ||
           "Delivery failed."
       );
 
@@ -1614,8 +1893,8 @@ function App() {
           _success: false,
           _dryRun: dryRun,
           error:
-            error.message ||
-            "Delivery failed.",
+            translateMessage(error.message) ||
+            t("Delivery failed."),
         };
       });
     } finally {
@@ -1648,15 +1927,13 @@ function App() {
           // Updated backend can return JWT + user after reset.
           // In that case, keep the new session and open Dashboard.
           if (user) {
-            setAuthUser(user);
             setAuthMode("login");
             setPage("Dashboard");
             return;
           }
 
           // Current backend fallback: return to Login.
-          clearAuthStorage();
-          setAuthUser(null);
+          clearAuth();
           setAuthMode("login");
           setPage("Dashboard");
         }}
@@ -1683,9 +1960,20 @@ function App() {
   }
 
   return (
-    <div className="app">
+  <div
+    className="app"
+    data-language={
+      selectedLanguage === "Telugu"
+        ? "te"
+        : selectedLanguage === "Hindi"
+          ? "hi"
+          : "en"
+    }
+    data-font={selectedFont.toLowerCase().replaceAll(" ", "-")}
+  >
+    
 
-      {/* ======================================================
+      {/*       {/* ======================================================
           SIDEBAR
       ======================================================= */}
 
@@ -1696,9 +1984,10 @@ function App() {
           </div>
 
           <div>
-            <b>Log Delivery</b>
+            <b>{t("Log Delivery")}</b>
+
             <span>
-              Management
+              {t("Management")}
             </span>
           </div>
         </div>
@@ -1709,14 +1998,26 @@ function App() {
               "Dashboard",
               LayoutDashboard,
             ],
+
             [
               "Delivery History",
               History,
             ],
+
             [
               "Repositories",
               GitBranch,
             ],
+
+            ...(isAdmin || isManager
+              ? [
+                  [
+                    "Audit Logs",
+                    ListChecks,
+                  ],
+                ]
+              : []),
+
             ...(isAdmin
               ? [
                   [
@@ -1725,10 +2026,12 @@ function App() {
                   ],
                 ]
               : []),
+
             [
               "Settings",
               Settings,
             ],
+
             [
               "Profile",
               UserCircle2,
@@ -1747,7 +2050,9 @@ function App() {
                 }
               >
                 <Icon size={18} />
-                {name}
+
+                {/* Language translation only */}
+                {t(name)}
               </button>
             )
           )}
@@ -1757,7 +2062,8 @@ function App() {
           style={{
             marginTop: "8px",
             paddingTop: "8px",
-            borderTop: "1px solid rgba(148, 163, 184, 0.14)",
+            borderTop:
+              "1px solid rgba(148, 163, 184, 0.14)",
           }}
         >
           <button
@@ -1776,7 +2082,9 @@ function App() {
               color: "#cbd5e1",
               fontSize: "14px",
               fontWeight: 600,
-              cursor: busy ? "not-allowed" : "pointer",
+              cursor: busy
+                ? "not-allowed"
+                : "pointer",
               textAlign: "left",
               opacity: busy ? 0.55 : 1,
             }}
@@ -1784,17 +2092,22 @@ function App() {
               if (!busy) {
                 event.currentTarget.style.background =
                   "rgba(148, 163, 184, 0.10)";
-                event.currentTarget.style.color = "#ffffff";
+
+                event.currentTarget.style.color =
+                  "#ffffff";
               }
             }}
             onMouseLeave={(event) => {
               event.currentTarget.style.background =
                 "transparent";
-              event.currentTarget.style.color = "#cbd5e1";
+
+              event.currentTarget.style.color =
+                "#cbd5e1";
             }}
           >
             <LogOut size={18} />
-            Sign out
+
+            {t("Sign out")}
           </button>
         </div>
 
@@ -1803,21 +2116,22 @@ function App() {
 
           <div>
             <b>
-              Secure mode · {userRole}
+              {t("Secure mode")} ·{" "}
+              {t(userRole)}
             </b>
 
             <span>
               {isAdmin
-                ? "Administrator access"
+                ? t("Administrator access")
                 : isManager
-                ? "Manager access"
-                : "User access"}
+                ? t("Manager access")
+                : t("User access")}
             </span>
           </div>
         </div>
       </aside>
 
-      {/* ======================================================
+      {      /* ======================================================
           MAIN
       ======================================================= */}
 
@@ -1826,17 +2140,17 @@ function App() {
         <header>
           <div>
             <div className="eyebrow">
-              OPERATIONS CENTER
+              {t("OPERATIONS CENTER")}
             </div>
 
             <h1>
-              {page}
+              {t(page)}
             </h1>
 
             <p>
-              Collect application files from
-              configured repositories and
-              deliver them securely.
+              {t(
+                "Collect application files from configured repositories and deliver them securely."
+              )}
             </p>
           </div>
 
@@ -1855,7 +2169,8 @@ function App() {
               }
             >
               <RefreshCw size={16} />
-              Refresh
+
+              {t("Refresh")}
             </button>
 
             {canRunDelivery && (
@@ -1872,8 +2187,8 @@ function App() {
                 <Send size={16} />
 
                 {busy
-                  ? "Processing..."
-                  : "Run delivery"}
+                  ? t("Processing...")
+                  : t("Run delivery")}
               </button>
             )}
 
@@ -1882,11 +2197,11 @@ function App() {
 
         {notice && (
           <div className="notice">
-            {notice}
+            {t(notice)}
           </div>
         )}
 
-        {/* ======================================================
+        {        /* ======================================================
             DASHBOARD
         ======================================================= */}
 
@@ -1896,27 +2211,27 @@ function App() {
 
               <Card
                 icon={Archive}
-                label="Total jobs"
+                label={t("Total jobs")}
                 value={stats.total}
               />
 
               <Card
                 icon={CheckCircle2}
-                label="Successful"
+                label={t("Successful")}
                 value={stats.success}
                 ok
               />
 
               <Card
                 icon={XCircle}
-                label="Failed"
+                label={t("Failed")}
                 value={stats.failed}
                 bad
               />
 
               <Card
                 icon={Clock3}
-                label="Dry runs"
+                label={t("Dry runs")}
                 value={stats.dry_run}
               />
 
@@ -1930,11 +2245,11 @@ function App() {
 
                   <div>
                     <h2>
-                      Recent deliveries
+                      {t("Recent deliveries")}
                     </h2>
 
                     <span>
-                      Latest execution activity
+                      {t("Latest execution activity")}
                     </span>
                   </div>
 
@@ -1946,7 +2261,7 @@ function App() {
                       )
                     }
                   >
-                    View history
+                    {t("View history")}
                   </button>
 
                 </div>
@@ -1965,11 +2280,11 @@ function App() {
 
                   <div>
                     <h2>
-                      Active repository
+                      {t("Active repository")}
                     </h2>
 
                     <span>
-                      Current delivery source
+                      {t("Current delivery source")}
                     </span>
                   </div>
 
@@ -1981,7 +2296,7 @@ function App() {
                       )
                     }
                   >
-                    Manage
+                    {t("Manage")}
                   </button>
 
                 </div>
@@ -1994,7 +2309,7 @@ function App() {
                   />
                 ) : (
                   <div className="empty">
-                    No repository configured.
+                    {t("No repository configured.")}
                   </div>
                 )}
 
@@ -2003,7 +2318,6 @@ function App() {
             </section>
           </>
         )}
-
         {/* ======================================================
             DELIVERY HISTORY
         ======================================================= */}
@@ -2015,12 +2329,11 @@ function App() {
 
               <div>
                 <h2>
-                  Delivery history
+                  {t('Delivery history')}
                 </h2>
 
                 <span>
-                  Auditable record of every
-                  execution
+                  {t("Auditable record of every execution")}
                 </span>
               </div>
 
@@ -2036,20 +2349,29 @@ function App() {
                   }
                 >
                   <Clock3 size={15} />
-                  Dry run
+                  {t('Dry run')}
                 </button>
               )}
 
             </div>
 
             <JobTable
-              jobs={jobs}
+              jobs={paginatedJobs}
             />
+
+            {totalJobPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalItems={jobs.length}
+                itemsPerPage={jobsPerPage}
+                onPageChange={setCurrentPage}
+              />
+            )}
 
           </section>
         )}
 
-        {/* ======================================================
+        {        /* ======================================================
             REPOSITORIES
         ======================================================= */}
 
@@ -2060,17 +2382,17 @@ function App() {
 
               <div>
                 <div className="eyebrow">
-                  SOURCE MANAGEMENT
+                  {t("SOURCE MANAGEMENT")}
                 </div>
 
                 <h2>
-                  Repositories
+                  {t("Repositories")}
                 </h2>
 
                 <span>
-                  Configure Git repositories,
-                  targets, recipients and
-                  connection settings.
+                  {t(
+                    "Configure Git repositories, targets, recipients and connection settings."
+                  )}
                 </span>
               </div>
 
@@ -2083,7 +2405,7 @@ function App() {
                   disabled={busy}
                 >
                   <Plus size={16} />
-                  Add repository
+                  {t("Add repository")}
                 </button>
               )}
 
@@ -2094,12 +2416,13 @@ function App() {
 
                 <div>
                   <b>
-                    Delivery target
+                    {t("Delivery target")}
                   </b>
 
                   <span>
-                    Choose the repository
-                    you want to process.
+                    {t(
+                      "Choose the repository you want to process."
+                    )}
                   </span>
                 </div>
 
@@ -2136,12 +2459,15 @@ function App() {
                 />
 
                 <b>
-                  No repositories configured
+                  {t(
+                    "No repositories configured"
+                  )}
                 </b>
 
                 <span>
-                  Add your first repository
-                  to begin collecting files.
+                  {t(
+                    "Add your first repository to begin collecting files."
+                  )}
                 </span>
 
                 {canManageRepositories && (
@@ -2152,7 +2478,7 @@ function App() {
                     }
                   >
                     <Plus size={15} />
-                    Add repository
+                    {t("Add repository")}
                   </button>
                 )}
 
@@ -2209,6 +2535,183 @@ function App() {
         )}
 
         {/* ======================================================
+            AUDIT LOGS
+        ======================================================= */}
+
+        {page === "Audit Logs" &&
+          (isAdmin || isManager) && (
+            <section className="panel full">
+
+              <div className="panelHead">
+
+                <div>
+                  <div className="eyebrow">
+                    {t("SECURITY & COMPLIANCE")}
+                  </div>
+
+                  <h2>
+                    {t("Audit Logs")}
+                  </h2>
+
+                  <span>
+                    {t(
+                      "Review authenticated application activity and security events."
+                    )}
+                  </span>
+                </div>
+
+                <button
+                  className="ghost small"
+                  onClick={
+                    loadAuditLogs
+                  }
+                  disabled={
+                    auditLogsLoading ||
+                    busy
+                  }
+                >
+                  <RefreshCw size={15} />
+
+                  {auditLogsLoading
+                    ? t("Loading...")
+                    : t("Refresh")}
+                </button>
+
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "1fr 1fr auto",
+                  gap: "10px",
+                  marginBottom: "18px",
+                }}
+              >
+
+                <div className="formField">
+
+                  <label>
+                    {t("Action")}
+                  </label>
+
+                  <input
+                    value={
+                      auditActionFilter
+                    }
+                    onChange={(event) =>
+                      setAuditActionFilter(
+                        event.target.value
+                      )
+                    }
+                    placeholder={t(
+                      "e.g. USER_LOGIN"
+                    )}
+                  />
+
+                </div>
+
+                <div className="formField">
+
+                  <label>
+                    {t("Resource")}
+                  </label>
+
+                  <input
+                    value={
+                      auditResourceFilter
+                    }
+                    onChange={(event) =>
+                      setAuditResourceFilter(
+                        event.target.value
+                      )
+                    }
+                    placeholder={t(
+                      "e.g. user"
+                    )}
+                  />
+
+                </div>
+
+                <button
+                  className="ghost small"
+                  type="button"
+                  onClick={() => {
+                    setAuditActionFilter("");
+                    setAuditResourceFilter("");
+                  }}
+                  style={{
+                    alignSelf: "end",
+                  }}
+                >
+                  <X size={14} />
+                  {t("Clear")}
+                </button>
+
+              </div>
+
+              {auditLogsLoading &&
+              auditLogs.length === 0 ? (
+                <div className="empty">
+
+                  <ListChecks
+                    size={38}
+                  />
+
+                  <b>
+                    {t(
+                      "Loading audit logs..."
+                    )}
+                  </b>
+
+                  <span>
+                    {t(
+                      "Retrieving security and application activity."
+                    )}
+                  </span>
+
+                </div>
+
+              ) : auditLogs.length === 0 ? (
+
+                <div className="empty">
+
+                  <ListChecks
+                    size={38}
+                  />
+
+                  <b>
+                    {t(
+                      "No audit records found"
+                    )}
+                  </b>
+
+                  <span>
+                    {t(
+                      "Try changing the filters or perform an authenticated action."
+                    )}
+                  </span>
+
+                </div>
+
+              ) : (
+
+                <AuditLogTable
+                  logs={auditLogs}
+                  canDelete={isAdmin}
+                  deletingAuditLogId={
+                    deletingAuditLogId
+                  }
+                  onDelete={
+                    deleteAuditLog
+                  }
+                />
+
+              )}
+
+            </section>
+          )}
+        {/* ======================================================
             USER MANAGEMENT
         ======================================================= */}
 
@@ -2219,15 +2722,15 @@ function App() {
 
               <div>
                 <div className="eyebrow">
-                  ACCESS ADMINISTRATION
+                  {t('ACCESS ADMINISTRATION')}
                 </div>
 
                 <h2>
-                  User Management
+                  {t('User Management')}
                 </h2>
 
                 <span>
-                  Create application users, manage roles and control account access.
+                  {t('Create application users, manage roles and control account access.')}
                 </span>
               </div>
 
@@ -2250,7 +2753,7 @@ function App() {
                   disabled={busy}
                 >
                   <Plus size={16} />
-                  Create user
+                  {t('Create user')}
                 </button>
               </div>
 
@@ -2260,20 +2763,20 @@ function App() {
               <div className="empty">
                 <Users size={38} />
                 <b>
-                  Loading users...
+                  {t('Loading users...')}
                 </b>
                 <span>
-                  Retrieving the application user list.
+                  {t("Retrieving the application user list.")}
                 </span>
               </div>
             ) : managedUsers.length === 0 ? (
               <div className="empty">
                 <Users size={38} />
                 <b>
-                  No users found
+                  {t('No users found')}
                 </b>
                 <span>
-                  Create the first managed application user.
+                  {t("Create the first managed application user.")}
                 </span>
 
                 <button
@@ -2281,7 +2784,7 @@ function App() {
                   onClick={openCreateUser}
                 >
                   <Plus size={15} />
-                  Create user
+                  {t('Create user')}
                 </button>
               </div>
             ) : (
@@ -2308,49 +2811,58 @@ function App() {
 
               <div>
                 <div className="eyebrow">
-                  ACCOUNT
+                  {t('ACCOUNT')}
                 </div>
 
                 <h2>
-                  My Profile
+                  {t('My Profile')}
                 </h2>
 
                 <span>
-                  View your Log Delivery Management account details.
+                  {t("View and update your Log Delivery Management account details.")}
                 </span>
               </div>
+
+              <button
+                className="primary small"
+                onClick={openProfileEdit}
+                disabled={busy}
+              >
+                <Pencil size={15} />
+                {t('Edit profile')}
+              </button>
 
             </div>
 
             <div className="settings">
 
               <SettingField
-                label="Username"
+                label={t("Username")}
                 value={authUser?.username || "—"}
               />
 
               <SettingField
-                label="Email"
+                label={t("Email")}
                 value={authUser?.email || "—"}
               />
 
               <SettingField
-                label="First name"
+                label={t("First name")}
                 value={authUser?.first_name || "—"}
               />
 
               <SettingField
-                label="Last name"
+                label={t("Last name")}
                 value={authUser?.last_name || "—"}
               />
 
               <SettingField
-                label="Role"
+                label={t("Role")}
                 value={authUser?.role || "USER"}
               />
 
               <SettingField
-                label="Account status"
+                label={t("Account status")}
                 value={
                   authUser?.is_active
                     ? "ACTIVE"
@@ -2384,7 +2896,7 @@ function App() {
                 <ShieldCheck size={18} />
                 <div>
                   <b>
-                    Secure session
+                    {t('Secure session')}
                   </b>
                   <div
                     style={{
@@ -2393,7 +2905,7 @@ function App() {
                       fontSize: "12px",
                     }}
                   >
-                    Your account is authenticated using JWT.
+                    {t('Your account is authenticated using JWT.')}
                   </div>
                 </div>
               </div>
@@ -2404,7 +2916,7 @@ function App() {
                 disabled={busy}
               >
                 <LogOut size={15} />
-                Sign out
+                {t('Sign out')}
               </button>
             </div>
 
@@ -2419,61 +2931,295 @@ function App() {
           <section className="panel full">
 
             <div className="panelHead">
-
               <div>
+                <div className="eyebrow">
+                  {t('PREFERENCES')}
+                </div>
+
                 <h2>
-                  System settings
+                  {t('System settings')}
                 </h2>
 
                 <span>
-                  Current application configuration
+                  {t('Choose your application language and preferred font.')}
                 </span>
               </div>
-
             </div>
 
-            <div className="settings">
+            {/* LANGUAGE */}
 
-              <SettingField
-                label="Application"
-                value="Log Delivery Management"
-              />
+            <div style={{ marginBottom: "28px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "34px",
+                    height: "34px",
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: "9px",
+                    background: "#f1f5f9",
+                    fontSize: "17px",
+                  }}
+                >
+                  🌐
+                </div>
 
-              <SettingField
-                label="Backend"
-                value="Django REST API"
-              />
+                <div>
+                  <b
+                    style={{
+                      display: "block",
+                      color: "#0f172a",
+                      fontSize: "15px",
+                    }}
+                  >
+                    {t('Language')}
+                  </b>
 
-              <SettingField
-                label="Repositories"
-                value={String(
-                  repos.length
-                )}
-              />
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: "3px",
+                      color: "#64748b",
+                      fontSize: "12px",
+                    }}
+                  >
+                    {t("Select the language for the application.")}
+                  </span>
+                </div>
+              </div>
 
-              <SettingField
-                label="Email mode"
-                value={
-                  selectedRepository
-                    ?.email_mode ||
-                  "SMTP"
-                }
-              />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                {languageOptions.map((language) => {
+                  const active = selectedLanguage === language.value;
 
-              <SettingField
-                label="Target"
-                value={
-                  selectedRepository
-                    ?.target_path ||
-                  "Not configured"
-                }
-              />
+                  return (
+                    <button
+                      key={language.value}
+                      type="button"
+                      onClick={() => handleLanguageChange(language.value)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        padding: "14px",
+                        borderRadius: "12px",
+                        border: active
+                          ? "2px solid #111827"
+                          : "1px solid #e2e8f0",
+                        background: active ? "#f8fafc" : "#ffffff",
+                        color: "#0f172a",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        boxShadow: active
+                          ? "0 0 0 3px rgba(15, 23, 42, 0.06)"
+                          : "none",
+                      }}
+                    >
+                      <span style={{ fontSize: "22px", lineHeight: 1 }}>
+                        {language.flag}
+                      </span>
 
-              <SettingField
-                label="Security"
-                value="Sensitive-file filtering enabled"
-              />
+                      <span style={{ flex: 1 }}>
+                        <b
+                          style={{
+                            display: "block",
+                            fontSize: "14px",
+                          }}
+                        >
+                          {language.label}
+                        </b>
 
+                        <span
+                          style={{
+                            display: "block",
+                            marginTop: "3px",
+                            color: "#64748b",
+                            fontSize: "11px",
+                          }}
+                        >
+                          {language.value}
+                        </span>
+                      </span>
+
+                      {active && <CheckCircle2 size={17} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* FONT */}
+
+            <div style={{ marginBottom: "28px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "34px",
+                    height: "34px",
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: "9px",
+                    background: "#f1f5f9",
+                    fontSize: "17px",
+                    fontWeight: 700,
+                  }}
+                >
+                  Aa
+                </div>
+
+                <div>
+                  <b
+                    style={{
+                      display: "block",
+                      color: "#0f172a",
+                      fontSize: "15px",
+                    }}
+                  >
+                    {t('Font')}
+                  </b>
+
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: "3px",
+                      color: "#64748b",
+                      fontSize: "12px",
+                    }}
+                  >
+                    {t("Choose the font used throughout the application.")}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                {fontOptions.map((font) => {
+                  const active = selectedFont === font.value;
+
+                  return (
+                    <button
+                      key={font.value}
+                      type="button"
+                      onClick={() => handleFontChange(font.value)}
+                      style={{
+                        padding: "16px",
+                        borderRadius: "12px",
+                        border: active
+                          ? "2px solid #111827"
+                          : "1px solid #e2e8f0",
+                        background: active ? "#f8fafc" : "#ffffff",
+                        color: "#0f172a",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontFamily: font.family,
+                        boxShadow: active
+                          ? "0 0 0 3px rgba(15, 23, 42, 0.06)"
+                          : "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "10px",
+                        }}
+                      >
+                        <b style={{ fontSize: "16px" }}>
+                          {font.label}
+                        </b>
+
+                        {active && <CheckCircle2 size={17} />}
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "12px",
+                          color: "#64748b",
+                        }}
+                      >
+                        {font.description}
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: "12px",
+                          fontSize: "18px",
+                        }}
+                      >
+                        Aa Bb Cc 123
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* CURRENT SELECTION */}
+
+            <div
+              style={{
+                padding: "16px",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+                background: "#f8fafc",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                }}
+              >
+                <Settings size={16} />
+                <b>{t("Current preferences")}</b>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                <SettingField
+                  label="Language"
+                  value={selectedLanguage}
+                />
+
+                <SettingField
+                  label="Font"
+                  value={selectedFont}
+                />
+              </div>
             </div>
 
           </section>
@@ -2494,6 +3240,20 @@ function App() {
           onChange={updateUserField}
           onClose={closeUserForm}
           onSubmit={saveManagedUser}
+        />
+      )}
+
+      {/* ======================================================
+          MY PROFILE MODAL
+      ====================================================== */}
+
+      {profileFormOpen && (
+        <ProfileModal
+          form={profileForm}
+          busy={busy}
+          onChange={updateProfileField}
+          onClose={closeProfileEdit}
+          onSubmit={saveMyProfile}
         />
       )}
 
@@ -2674,15 +3434,15 @@ function AuthBrandPanel({ mode = "login" }) {
               Log Delivery
             </div>
             <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "3px" }}>
-              Management
+              {t('Management')}
             </div>
           </div>
         </div>
 
         <div style={{ ...authStyles.content, marginTop: "92px" }}>
-          <div style={authStyles.eyebrow}>OPERATIONS CENTER</div>
+          <div style={authStyles.eyebrow}>{t('OPERATIONS CENTER')}</div>
           <h1 style={authStyles.title}>
-            Secure log delivery,
+            {t('Secure log delivery,')}
             <br />
             without the manual work.
           </h1>
@@ -2694,17 +3454,17 @@ function AuthBrandPanel({ mode = "login" }) {
 
           <AuthFeature
             icon={ShieldCheck}
-            title="Secure access"
+            title={t('Secure access')}
             text="JWT authentication keeps your application session protected."
           />
           <AuthFeature
             icon={GitBranch}
-            title="Repository based"
+            title={t('Repository based')}
             text="Connect GitHub, GitLab, Azure DevOps, internal or local Git sources."
           />
           <AuthFeature
             icon={Send}
-            title="Controlled delivery"
+            title={t('Controlled delivery')}
             text="Select targets and multiple recipients before every delivery."
           />
         </div>
@@ -2817,7 +3577,7 @@ function AuthLoadingScreen() {
           >
             LD
           </div>
-          <strong style={{ color: "#0f172a" }}>Checking your session...</strong>
+          <strong style={{ color: "#0f172a" }}>{t('Checking your session...')}</strong>
         </div>
       </div>
     </div>
@@ -2833,6 +3593,8 @@ function AuthScreen({
   onModeChange,
   onAuthenticated,
 }) {
+  const { login } = useAuth();
+
   const isSignup = mode === "signup";
 
   const [form, setForm] = useState({
@@ -2936,28 +3698,16 @@ function AuthScreen({
         return;
       }
 
-      storeAuthSession(result);
+      // Login is owned by AuthContext. It stores the JWTs and
+      // updates the authenticated user state.
+      const loginResult = await login(
+        form.username.trim(),
+        form.password
+      );
 
-      let user = result.user;
-
-      if (!user) {
-        const meResponse = await authFetch(`${API}/auth/me/`);
-        const meResult = await meResponse.json();
-
-        if (!meResponse.ok) {
-          throw new Error(getApiError(meResult));
-        }
-
-        user = normalizeAuthUser(meResult);
-
-        if (!user) {
-          throw new Error("Unable to load the authenticated user.");
-        }
-
-        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-      }
-
-      onAuthenticated(user);
+      onAuthenticated(
+        loginResult?.user || null
+      );
     } catch (submitError) {
       setError(
         submitError.message ||
@@ -2996,13 +3746,13 @@ function AuthScreen({
                 }}
               >
                 <AuthInput
-                  label="First name"
+                  label={t("First name")}
                   value={form.first_name}
                   onChange={(value) => updateField("first_name", value)}
                   autoComplete="given-name"
                 />
                 <AuthInput
-                  label="Last name"
+                  label={t("Last name")}
                   value={form.last_name}
                   onChange={(value) => updateField("last_name", value)}
                   autoComplete="family-name"
@@ -3011,7 +3761,7 @@ function AuthScreen({
             )}
 
             <AuthInput
-              label="Username"
+              label={t("Username")}
               value={form.username}
               onChange={(value) => updateField("username", value)}
               autoComplete="username"
@@ -3021,7 +3771,7 @@ function AuthScreen({
 
             {isSignup && (
               <AuthInput
-                label="Email"
+                label={t("Email")}
                 type="email"
                 value={form.email}
                 onChange={(value) => updateField("email", value)}
@@ -3032,7 +3782,7 @@ function AuthScreen({
             )}
 
             <AuthInput
-              label="Password"
+              label={t("Password")}
               type="password"
               value={form.password}
               onChange={(value) => updateField("password", value)}
@@ -3043,7 +3793,7 @@ function AuthScreen({
 
             {isSignup && (
               <AuthInput
-                label="Confirm password"
+                label={t("Confirm password")}
                 type="password"
                 value={form.password_confirm}
                 onChange={(value) => updateField("password_confirm", value)}
@@ -3069,7 +3819,7 @@ function AuthScreen({
                     cursor: busy ? "not-allowed" : "pointer",
                   }}
                 >
-                  Forgot password?
+                  {t('Forgot password?')}
                 </button>
               </div>
             )}
@@ -3174,7 +3924,7 @@ function ForgotPasswordScreen({ onBack }) {
         setResetUrl(result.reset_url);
       }
     } catch (error) {
-      setError(error.message || "Unable to send the reset link.");
+      setError(translateMessage(error.message) || t("Unable to send the reset link."));
     } finally {
       setBusy(false);
     }
@@ -3208,7 +3958,7 @@ function ForgotPasswordScreen({ onBack }) {
                 wordBreak: "break-all",
               }}
             >
-              <b>Local development reset link</b>
+              <b>{t('Local development reset link')}</b>
               <div style={{ marginTop: "7px" }}>
                 <a
                   href={resetUrl}
@@ -3218,7 +3968,7 @@ function ForgotPasswordScreen({ onBack }) {
                     textDecoration: "none",
                   }}
                 >
-                  Open password reset page
+                  {t('Open password reset page')}
                 </a>
               </div>
             </div>
@@ -3226,7 +3976,7 @@ function ForgotPasswordScreen({ onBack }) {
 
           <form onSubmit={submit}>
             <AuthInput
-              label="Registered email"
+              label={t("Registered email")}
               type="email"
               value={email}
               onChange={setEmail}
@@ -3265,7 +4015,7 @@ function ForgotPasswordScreen({ onBack }) {
               color: "#64748b",
             }}
           >
-            Remember your password?
+            {t('Remember your password?')}
             <button
               type="button"
               onClick={onBack}
@@ -3280,7 +4030,7 @@ function ForgotPasswordScreen({ onBack }) {
                 cursor: busy ? "not-allowed" : "pointer",
               }}
             >
-              Back to sign in
+              {t('Back to sign in')}
             </button>
           </div>
         </div>
@@ -3347,28 +4097,18 @@ function PasswordResetScreen({ uid, token, onComplete }) {
       }
 
       if (result.access && result.refresh) {
-        storeAuthSession(result);
+        // The reset endpoint returns a new JWT session.
+        // Store it using the same keys owned by AuthContext,
+        // then let AuthContext restore the session on reload.
+        localStorage.setItem(
+          "access_token",
+          result.access
+        );
 
-        let user = normalizeAuthUser(result.user);
-
-        if (!user) {
-          const meResponse = await authFetch(`${API}/auth/me/`);
-          const meResult = await meResponse.json();
-
-          if (!meResponse.ok) {
-            throw new Error(getApiError(meResult));
-          }
-
-          user = normalizeAuthUser(meResult);
-        }
-
-        if (!user) {
-          throw new Error(
-            "Password was reset, but the authenticated user could not be loaded."
-          );
-        }
-
-        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+        localStorage.setItem(
+          "refresh_token",
+          result.refresh
+        );
 
         setSuccess(
           result.message ||
@@ -3376,7 +4116,7 @@ function PasswordResetScreen({ uid, token, onComplete }) {
         );
 
         setTimeout(() => {
-          onComplete(user);
+          window.location.href = "/";
         }, 700);
 
         return;
@@ -3416,7 +4156,7 @@ function PasswordResetScreen({ uid, token, onComplete }) {
 
           <form onSubmit={submit}>
             <AuthInput
-              label="New password"
+              label={t("New password")}
               type="password"
               value={form.password}
               onChange={(value) => updateField("password", value)}
@@ -3426,7 +4166,7 @@ function PasswordResetScreen({ uid, token, onComplete }) {
             />
 
             <AuthInput
-              label="Confirm new password"
+              label={t("Confirm new password")}
               type="password"
               value={form.password_confirm}
               onChange={(value) => updateField("password_confirm", value)}
@@ -3446,7 +4186,7 @@ function PasswordResetScreen({ uid, token, onComplete }) {
                 fontSize: "12px",
               }}
             >
-              Use at least 8 characters and make both password fields match.
+              {t("Use at least 8 characters and make both password fields match.")}
             </div>
 
             <button
@@ -3499,7 +4239,7 @@ function PasswordResetScreen({ uid, token, onComplete }) {
                 cursor: busy ? "not-allowed" : "pointer",
               }}
             >
-              Back to sign in
+              {t('Back to sign in')}
             </button>
           </div>
         </div>
@@ -3564,6 +4304,137 @@ function AuthInput({
 }
 
 // ============================================================
+// AUDIT LOG TABLE
+// ============================================================
+
+function AuditLogTable({
+  logs,
+  canDelete = false,
+  deletingAuditLogId = null,
+  onDelete,
+}) {
+  const columnTemplate = canDelete
+    ? "1.1fr 1fr 0.9fr 0.65fr 1fr 1.2fr 0.8fr"
+    : "1.25fr 1.1fr 1fr 0.75fr 1.25fr 1.4fr";
+
+  return (
+    <div className="table">
+
+      <div
+        className="tr th"
+        style={{
+          gridTemplateColumns: columnTemplate,
+        }}
+      >
+        <span>{t('User')}</span>
+        <span>{t('Action')}</span>
+        <span>{t('Resource')}</span>
+        <span>{t('Resource ID')}</span>
+        <span>{t('IP Address')}</span>
+        <span>{t('Timestamp')}</span>
+        {canDelete && <span>{t('Actions')}</span>}
+      </div>
+
+      {logs.map((log) => (
+        <div
+          className="tr"
+          key={log.id}
+          style={{
+            gridTemplateColumns: columnTemplate,
+          }}
+        >
+          <span>
+            <b>
+              {log.username ||
+                log.user?.username ||
+                "System"}
+            </b>
+
+            {(log.user_id ||
+              log.user?.id) && (
+              <small>
+                User ID:{" "}
+                {log.user_id ||
+                  log.user?.id}
+              </small>
+            )}
+          </span>
+
+          <span>
+            <span
+              className="status"
+              style={{
+                background: "#eff6ff",
+                color: "#1d4ed8",
+              }}
+            >
+              <ListChecks size={14} />
+              {String(
+                log.action ||
+                  "UNKNOWN"
+              ).replaceAll(
+                "_",
+                " "
+              )}
+            </span>
+          </span>
+
+          <span>
+            {log.resource || "—"}
+          </span>
+
+          <span>
+            {log.resource_id || "—"}
+          </span>
+
+          <span>
+            {log.ip_address || "—"}
+          </span>
+
+          <span>
+            {log.timestamp
+              ? new Date(
+                  log.timestamp
+                ).toLocaleString()
+              : "—"}
+          </span>
+
+          {canDelete && (
+            <span>
+              <button
+                className="danger small"
+                type="button"
+                disabled={deletingAuditLogId !== null}
+                onClick={() => onDelete(log)}
+                title={t('Delete audit log')}
+              >
+                {String(deletingAuditLogId) === String(log.id) ? (
+                  <>
+                    <RefreshCw size={14} />
+                    {t('Deleting...')}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    {t('Delete')}
+                  </>
+                )}
+              </button>
+            </span>
+          )}
+        </div>
+      ))}
+
+    </div>
+  );
+}
+
+
+// ============================================================
+// USER MANAGEMENT TABLE
+// ============================================================
+
+// ============================================================
 // USER MANAGEMENT TABLE
 // ============================================================
 
@@ -3578,11 +4449,11 @@ function UserManagementTable({
     <div className="table">
 
       <div className="tr th">
-        <span>User</span>
-        <span>Role</span>
-        <span>Status</span>
-        <span>Created</span>
-        <span>Actions</span>
+        <span>{t("User")}</span>
+        <span>{t("Role")}</span>
+        <span>{t("Status")}</span>
+        <span>{t("Created")}</span>
+        <span>{t("Actions")}</span>
       </div>
 
       {users.map((user) => {
@@ -3617,7 +4488,10 @@ function UserManagementTable({
                 ).toLowerCase()}`}
               >
                 <ShieldCheck size={14} />
-                {user.role || "USER"}
+
+                {user.role
+                  ? t(user.role)
+                  : t("USER")}
               </span>
             </span>
 
@@ -3634,9 +4508,10 @@ function UserManagementTable({
                 ) : (
                   <XCircle size={14} />
                 )}
+
                 {user.is_active
-                  ? "ACTIVE"
-                  : "INACTIVE"}
+                  ? t("ACTIVE")
+                  : t("INACTIVE")}
               </span>
             </span>
 
@@ -3656,6 +4531,7 @@ function UserManagementTable({
                   flexWrap: "wrap",
                 }}
               >
+
                 <button
                   className="ghost small"
                   disabled={busy}
@@ -3664,7 +4540,7 @@ function UserManagementTable({
                   }
                 >
                   <Pencil size={14} />
-                  Edit
+                  {t("Edit")}
                 </button>
 
                 <button
@@ -3682,22 +4558,27 @@ function UserManagementTable({
                   }
                   title={
                     isCurrentUser
-                      ? "You cannot deactivate your own account."
+                      ? t(
+                          "You cannot deactivate your own account."
+                        )
                       : ""
                   }
                 >
+
                   {user.is_active ? (
                     <>
                       <XCircle size={14} />
-                      Deactivate
+                      {t("Deactivate")}
                     </>
                   ) : (
                     <>
                       <CheckCircle2 size={14} />
-                      Activate
+                      {t("Activate")}
                     </>
                   )}
+
                 </button>
+
               </div>
             </span>
 
@@ -3736,21 +4617,27 @@ function UserManagementModal({
         <div className="modalHeader">
 
           <div>
+
             <div className="eyebrow">
-              ACCESS ADMINISTRATION
+              {t("ACCESS ADMINISTRATION")}
             </div>
 
             <h2>
               {editing
-                ? "Edit user"
-                : "Create user"}
+                ? t("Edit user")
+                : t("Create user")}
             </h2>
 
             <span>
               {editing
-                ? "Update the user's profile, role or account status."
-                : "Create an application account and assign its role."}
+                ? t(
+                    "Update the user's profile, role or account status."
+                  )
+                : t(
+                    "Create an application account and assign its role."
+                  )}
             </span>
+
           </div>
 
           <button
@@ -3767,13 +4654,13 @@ function UserManagementModal({
 
           <div className="formSectionTitle">
             <Users size={16} />
-            Account details
+            {t("Account details")}
           </div>
 
           <div className="formGrid">
 
             <FormInput
-              label="Username"
+              label={t("Username")}
               value={form.username}
               onChange={(value) =>
                 onChange(
@@ -3781,12 +4668,12 @@ function UserManagementModal({
                   value
                 )
               }
-              placeholder="username"
+              placeholder={t("username")}
               required
             />
 
             <FormInput
-              label="Email"
+              label={t("Email")}
               value={form.email}
               onChange={(value) =>
                 onChange(
@@ -3794,12 +4681,12 @@ function UserManagementModal({
                   value
                 )
               }
-              placeholder="user@company.com"
+              placeholder={t("user@company.com")}
               required
             />
 
             <FormInput
-              label="First name"
+              label={t("First name")}
               value={form.first_name}
               onChange={(value) =>
                 onChange(
@@ -3807,11 +4694,11 @@ function UserManagementModal({
                   value
                 )
               }
-              placeholder="First name"
+              placeholder={t("First name")}
             />
 
             <FormInput
-              label="Last name"
+              label={t("Last name")}
               value={form.last_name}
               onChange={(value) =>
                 onChange(
@@ -3819,12 +4706,13 @@ function UserManagementModal({
                   value
                 )
               }
-              placeholder="Last name"
+              placeholder={t("Last name")}
             />
 
             <div className="formField">
+
               <label>
-                Role
+                {t("Role")}
               </label>
 
               <select
@@ -3837,28 +4725,40 @@ function UserManagementModal({
                 }
                 disabled={isCurrentUser}
               >
+
                 <option value="USER">
-                  USER
+                  {t("USER")}
                 </option>
+
                 <option value="MANAGER">
-                  MANAGER
+                  {t("MANAGER")}
                 </option>
+
                 <option value="ADMIN">
-                  ADMIN
+                  {t("ADMIN")}
                 </option>
+
               </select>
 
               {isCurrentUser && (
-                <span style={{ marginTop: "6px" }}>
-                  Your ADMIN role cannot be changed from this screen.
+                <span
+                  style={{
+                    marginTop: "6px",
+                  }}
+                >
+                  {t(
+                    "Your ADMIN role cannot be changed from this screen."
+                  )}
                 </span>
               )}
+
             </div>
 
             {editing && (
               <div className="formField">
+
                 <label>
-                  Account status
+                  {t("Account status")}
                 </label>
 
                 <select
@@ -3876,13 +4776,17 @@ function UserManagementModal({
                   }
                   disabled={isCurrentUser}
                 >
+
                   <option value="ACTIVE">
-                    ACTIVE
+                    {t("ACTIVE")}
                   </option>
+
                   <option value="INACTIVE">
-                    INACTIVE
+                    {t("INACTIVE")}
                   </option>
+
                 </select>
+
               </div>
             )}
 
@@ -3890,15 +4794,16 @@ function UserManagementModal({
 
           {!editing && (
             <>
+
               <div className="formSectionTitle">
                 <ShieldCheck size={16} />
-                Initial password
+                {t("Initial password")}
               </div>
 
               <div className="formGrid">
 
                 <FormInput
-                  label="Password"
+                  label={t("Password")}
                   value={form.password}
                   onChange={(value) =>
                     onChange(
@@ -3906,12 +4811,14 @@ function UserManagementModal({
                       value
                     )
                   }
-                  placeholder="Minimum 8 characters"
+                  placeholder={t(
+                    "Minimum 8 characters"
+                  )}
                   required
                 />
 
                 <FormInput
-                  label="Confirm password"
+                  label={t("Confirm password")}
                   value={form.password_confirm}
                   onChange={(value) =>
                     onChange(
@@ -3919,18 +4826,167 @@ function UserManagementModal({
                       value
                     )
                   }
-                  placeholder="Repeat password"
+                  placeholder={t(
+                    "Repeat password"
+                  )}
                   required
                 />
 
               </div>
+
             </>
           )}
 
           <div className="smtpNotice">
+
+            <ShieldCheck size={16} />
+
+            <span>
+              {t(
+                "User-management permissions are enforced by the Django backend."
+              )}
+            </span>
+
+          </div>
+
+          <div className="modalFooter">
+
+            <button
+              type="button"
+              className="ghost"
+              onClick={onClose}
+              disabled={busy}
+            >
+              {t("Cancel")}
+            </button>
+
+            <button
+              type="submit"
+              className="primary"
+              disabled={busy}
+            >
+
+              <Save size={16} />
+
+              {busy
+                ? t("Saving...")
+                : editing
+                ? t("Save changes")
+                : t("Create user")}
+
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+  );
+}
+
+// ============================================================
+// MY PROFILE MODAL
+// ============================================================
+
+function ProfileModal({
+  form,
+  busy,
+  onChange,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <div className="modalOverlay">
+
+      <div className="modal">
+
+        <div className="modalHeader">
+
+          <div>
+            <div className="eyebrow">
+              {t('ACCOUNT')}
+            </div>
+
+            <h2>
+              {t('Edit profile')}
+            </h2>
+
+            <span>
+              {t('Update your personal account information.')}
+            </span>
+          </div>
+
+          <button
+            className="iconButton"
+            onClick={onClose}
+            disabled={busy}
+          >
+            <X size={18} />
+          </button>
+
+        </div>
+
+        <form onSubmit={onSubmit}>
+
+          <div className="formSectionTitle">
+            <UserCircle2 size={16} />
+            {t('Personal information')}
+          </div>
+
+          <div className="formGrid">
+
+            <div className="formField">
+              <label>
+                {t('Username')}
+              </label>
+
+              <input
+                value={form.username}
+                readOnly
+                disabled
+              />
+
+              <span style={{ marginTop: "6px" }}>
+                {t('Username cannot be changed from the profile screen.')}
+              </span>
+            </div>
+
+            <FormInput
+              label={t("Email")}
+              value={form.email}
+              onChange={(value) =>
+                onChange("email", value)
+              }
+              placeholder="user@company.com"
+              required
+            />
+
+            <FormInput
+              label={t("First name")}
+              value={form.first_name}
+              onChange={(value) =>
+                onChange("first_name", value)
+              }
+              placeholder="First name"
+            />
+
+            <FormInput
+              label={t("Last name")}
+              value={form.last_name}
+              onChange={(value) =>
+                onChange("last_name", value)
+              }
+              placeholder="Last name"
+            />
+
+          </div>
+
+          <div className="smtpNotice">
             <ShieldCheck size={16} />
             <span>
-              User-management permissions are enforced by the Django backend.
+              {t('Your role and account status are managed separately and cannot be changed here.')}
             </span>
           </div>
 
@@ -3942,7 +4998,7 @@ function UserManagementModal({
               onClick={onClose}
               disabled={busy}
             >
-              Cancel
+              {t('Cancel')}
             </button>
 
             <button
@@ -3954,9 +5010,7 @@ function UserManagementModal({
 
               {busy
                 ? "Saving..."
-                : editing
-                ? "Save changes"
-                : "Create user"}
+                : "Save profile"}
             </button>
 
           </div>
@@ -4007,7 +5061,7 @@ function RepositoryModal({
 
           <div>
             <div className="eyebrow">
-              REPOSITORY CONFIGURATION
+              {t('REPOSITORY CONFIGURATION')}
             </div>
 
             <h2>
@@ -4036,13 +5090,13 @@ function RepositoryModal({
 
           <div className="formSectionTitle">
             <GitBranch size={16} />
-            Repository source
+            {t('Repository source')}
           </div>
 
           <div className="formGrid">
 
             <FormInput
-              label="Repository name"
+              label={t("Repository name")}
               value={form.name}
               onChange={(value) =>
                 onChange(
@@ -4055,7 +5109,7 @@ function RepositoryModal({
             />
 
             <FormInput
-              label="Description"
+              label={t("Description")}
               value={
                 form.description
               }
@@ -4071,7 +5125,7 @@ function RepositoryModal({
             <div className="formField">
 
               <label>
-                Repository type
+                {t('Repository type')}
               </label>
 
               <select
@@ -4086,23 +5140,23 @@ function RepositoryModal({
                 }
               >
                 <option value="GITHUB">
-                  GitHub
+                  {t('GitHub')}
                 </option>
 
                 <option value="GITLAB">
-                  GitLab
+                  {t('GitLab')}
                 </option>
 
                 <option value="AZURE_DEVOPS">
-                  Azure DevOps
+                  {t('Azure DevOps')}
                 </option>
 
                 <option value="INTERNAL_GIT">
-                  Internal Git
+                  {t('Internal Git')}
                 </option>
 
                 <option value="LOCAL">
-                  Local Git
+                  {t('Local Git')}
                 </option>
               </select>
 
@@ -4110,7 +5164,7 @@ function RepositoryModal({
 
             {isLocal ? (
               <FormInput
-                label="Local repository path"
+                label={t("Local repository path")}
                 value={
                   form.local_path
                 }
@@ -4125,7 +5179,7 @@ function RepositoryModal({
               />
             ) : (
               <FormInput
-                label="Repository URL"
+                label={t("Repository URL")}
                 value={
                   form.repository_url
                 }
@@ -4152,7 +5206,7 @@ function RepositoryModal({
               />
             ) : (
               <div className="formField">
-                <label>Branch</label>
+                <label>{t('Branch')}</label>
 
                 <div style={{ display: "flex", gap: "8px" }}>
                   <select
@@ -4208,7 +5262,7 @@ function RepositoryModal({
                   branches.length === 0 &&
                   editing && (
                     <span style={{ marginTop: "6px" }}>
-                      Click Fetch to load all branches from this repository.
+                      {t('Click Fetch to load all branches from this repository.')}
                     </span>
                   )}
               </div>
@@ -4220,11 +5274,11 @@ function RepositoryModal({
             <>
               <div className="formSectionTitle">
                 <ShieldCheck size={16} />
-                Repository authentication
+                {t('Repository authentication')}
               </div>
 
               <div className="formField">
-                <label>Authentication</label>
+                <label>{t('Authentication')}</label>
                 <select
                   value={form.auth_type || "NONE"}
                   onChange={(event) => {
@@ -4237,10 +5291,10 @@ function RepositoryModal({
                   }}
                 >
                   <option value="NONE">
-                    Public repository — No authentication
+                    {t('Public repository — No authentication')}
                   </option>
                   <option value="PAT">
-                    Private repository — Personal Access Token
+                    {t('Private repository — Personal Access Token')}
                   </option>
                 </select>
               </div>
@@ -4256,7 +5310,7 @@ function RepositoryModal({
                   />
 
                   <div className="formField">
-                    <label>Personal Access Token</label>
+                    <label>{t('Personal Access Token')}</label>
 
                     <input
                       type="password"
@@ -4305,7 +5359,7 @@ function RepositoryModal({
 
           <div className="formSectionTitle">
             <Target size={16} />
-            Target selection
+            {t('Target selection')}
           </div>
 
           <div className="targetHint">
@@ -4359,7 +5413,7 @@ function RepositoryModal({
 
                 <div className="formField">
                   <label>
-                    Allowed extensions
+                    {t('Allowed extensions')}
                   </label>
 
                   <input
@@ -4393,7 +5447,7 @@ function RepositoryModal({
                     (Array.isArray(form.targets) &&
                       form.targets.length <= 1)
                   }
-                  title="Remove target"
+                  title={t('Remove target')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -4408,20 +5462,20 @@ function RepositoryModal({
               style={{ alignSelf: "flex-start" }}
             >
               <Plus size={15} />
-              Add target
+              {t('Add target')}
             </button>
           </div>
 
           <div className="formSectionTitle">
             <Mail size={16} />
-            Delivery configuration
+            {t('Delivery configuration')}
           </div>
 
           <div className="formGrid">
 
             <div className="formField">
               <label>
-                Recipients
+                {t('Recipients')}
               </label>
 
               <div
@@ -4462,7 +5516,7 @@ function RepositoryModal({
                         onRemoveRecipient(index)
                       }
                       disabled={busy}
-                      title="Remove recipient"
+                      title={t('Remove recipient')}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -4477,7 +5531,7 @@ function RepositoryModal({
                   style={{ alignSelf: "flex-start" }}
                 >
                   <Plus size={15} />
-                  Add recipient
+                  {t('Add recipient')}
                 </button>
               </div>
             </div>
@@ -4485,7 +5539,7 @@ function RepositoryModal({
             <div className="formField">
 
               <label>
-                Email mode
+                {t('Email mode')}
               </label>
 
               <select
@@ -4500,11 +5554,11 @@ function RepositoryModal({
                 }
               >
                 <option value="SMTP">
-                  SMTP — Real delivery
+                  {t('SMTP — Real delivery')}
                 </option>
 
                 <option value="SIMULATION">
-                  Simulation — No email
+                  {t('Simulation — No email')}
                 </option>
               </select>
 
@@ -4585,7 +5639,7 @@ function RepositoryModal({
               onClick={onClose}
               disabled={busy}
             >
-              Cancel
+              {t('Cancel')}
             </button>
 
             <button
@@ -4605,7 +5659,7 @@ function RepositoryModal({
               }
             >
               <Wifi size={15} />
-              Test connection
+              {t('Test connection')}
             </button>
 
             <button
@@ -4692,7 +5746,7 @@ function RepositoryCard({
 
             {selected && (
               <span className="selectedBadge">
-                Selected
+                {t('Selected')}
               </span>
             )}
 
@@ -4799,7 +5853,7 @@ function RepositoryCard({
             }
           >
             <Wifi size={14} />
-            Test
+            {t('Test')}
           </button>
         )}
 
@@ -4812,7 +5866,7 @@ function RepositoryCard({
             }
           >
             <Pencil size={14} />
-            Edit
+            {t('Edit')}
           </button>
         )}
 
@@ -4825,7 +5879,7 @@ function RepositoryCard({
             }
           >
             <Trash2 size={14} />
-            Deactivate
+            {t('Deactivate')}
           </button>
         )}
 
@@ -4866,7 +5920,7 @@ function RepositorySummary({
 
       <div className="repoRow">
         <span>
-          Type
+          {t('Type')}
         </span>
 
         <b>
@@ -4878,7 +5932,7 @@ function RepositorySummary({
 
       <div className="repoRow">
         <span>
-          Branch
+          {t('Branch')}
         </span>
 
         <b>
@@ -4888,7 +5942,7 @@ function RepositorySummary({
 
       <div className="repoRow">
         <span>
-          Target
+          {t('Target')}
         </span>
 
         <b>
@@ -4900,7 +5954,7 @@ function RepositorySummary({
 
       <div className="repoRow">
         <span>
-          Connection
+          {t('Connection')}
         </span>
 
         <b
@@ -4923,7 +5977,7 @@ function RepositorySummary({
 
       <div className="repoRow">
         <span>
-          Authentication
+          {t('Authentication')}
         </span>
 
         <b
@@ -4941,7 +5995,7 @@ function RepositorySummary({
 
       <div className="repoRow">
         <span>
-          Email
+          {t('Email')}
         </span>
 
         <b className="green">
@@ -5014,7 +6068,7 @@ function DeliveryResultModal({
           <div className="resultHeaderText">
 
             <div className="eyebrow">
-              DELIVERY EXECUTION
+              {t('DELIVERY EXECUTION')}
             </div>
 
             <h2>
@@ -5043,7 +6097,7 @@ function DeliveryResultModal({
         {result.job_reference && (
           <div className="jobReference">
             <span>
-              Job reference
+              {t('Job reference')}
             </span>
 
             <strong>
@@ -5062,7 +6116,7 @@ function DeliveryResultModal({
 
               <div>
                 <b>
-                  Execution error
+                  {t('Execution error')}
                 </b>
 
                 <span>
@@ -5180,7 +6234,7 @@ function DeliveryResultModal({
               <Mail size={15} />
 
               <b>
-                Recipients
+                {t('Recipients')}
               </b>
 
             </div>
@@ -5211,7 +6265,7 @@ function DeliveryResultModal({
             className="ghost"
             onClick={onClose}
           >
-            Close
+            {t('Close')}
           </button>
 
           <button
@@ -5219,7 +6273,7 @@ function DeliveryResultModal({
             onClick={onHistory}
           >
             <Eye size={15} />
-            View delivery history
+            {t('View delivery history')}
           </button>
 
         </div>
@@ -5333,23 +6387,23 @@ function JobTable({
       <div className="tr th">
 
         <span>
-          Repository
+          {t('Repository')}
         </span>
 
         <span>
-          Status
+          {t('Status')}
         </span>
 
         <span>
-          Files
+          {t('Files')}
         </span>
 
         <span>
-          Archive
+          {t('Archive')}
         </span>
 
         <span>
-          Created
+          {t('Created')}
         </span>
 
       </div>
@@ -5456,7 +6510,7 @@ function Status({
       ).toLowerCase()}`}
     >
       <Icon size={14} />
-      {displayStatus}
+      {t(displayStatus)}
     </span>
   );
 }
@@ -5477,7 +6531,7 @@ function FormInput({
     <div className="formField">
 
       <label>
-        {label}
+        {t(label)}
       </label>
 
       <input
@@ -5488,7 +6542,7 @@ function FormInput({
           )
         }
         placeholder={
-          placeholder
+          placeholder ? t(placeholder) : placeholder
         }
         required={required}
       />
@@ -5509,7 +6563,7 @@ function SettingField({
   return (
     <label>
 
-      {label}
+      {t(label)}
 
       <input
         value={value}
@@ -5641,5 +6695,9 @@ createRoot(
     "root"
   )
 ).render(
-  <App />
+  <React.StrictMode>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </React.StrictMode>
 );

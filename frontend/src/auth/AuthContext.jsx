@@ -3,6 +3,7 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useRef,
 } from "react";
 
 
@@ -20,6 +21,40 @@ const AuthContext =
 
 const API_BASE_URL =
   "http://127.0.0.1:8000/api";
+
+
+// ============================================================
+// AUTH REQUEST TIMEOUT
+// ============================================================
+
+const AUTH_REQUEST_TIMEOUT = 10000;
+
+const fetchWithTimeout = async (
+  url,
+  options = {},
+  timeout = AUTH_REQUEST_TIMEOUT
+) => {
+  const controller =
+    new AbortController();
+
+  const timeoutId =
+    setTimeout(
+      () => controller.abort(),
+      timeout
+    );
+
+  try {
+    return await fetch(
+      url,
+      {
+        ...options,
+        signal: controller.signal,
+      }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 
 // ============================================================
@@ -62,6 +97,16 @@ export function AuthProvider({
     loading,
     setLoading,
   ] = useState(true);
+
+
+  // ==========================================================
+  // REFRESH REQUEST LOCK
+  // ==========================================================
+
+  // Prevent multiple components from sending refresh requests
+  // at the same time. Every caller waits for the same request.
+  const refreshPromiseRef =
+    useRef(null);
 
 
   // ==========================================================
@@ -269,7 +314,7 @@ export function AuthProvider({
 
 
       const response =
-        await fetch(
+        await fetchWithTimeout(
           `${API_BASE_URL}/auth/me/`,
           {
             method: "GET",
@@ -324,72 +369,101 @@ export function AuthProvider({
   const refreshAccessToken =
     async () => {
 
-      const storedRefresh =
-        refreshToken ||
-        localStorage.getItem(
-          "refresh_token"
-        );
+      // If another refresh request is already running,
+      // wait for that same request instead of sending another.
+      if (refreshPromiseRef.current) {
 
-
-      if (!storedRefresh) {
-
-        return null;
+        return refreshPromiseRef.current;
 
       }
 
 
-      const response =
-        await fetch(
-          `${API_BASE_URL}/auth/refresh/`,
-          {
-            method: "POST",
+      const refreshRequest =
+        (async () => {
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+          const storedRefresh =
+            localStorage.getItem(
+              "refresh_token"
+            ) ||
+            refreshToken;
 
-            body:
-              JSON.stringify({
-                refresh:
-                  storedRefresh,
-              }),
+
+          if (!storedRefresh) {
+
+            return null;
+
           }
-        );
 
 
-      const data =
-        await response
-          .json()
-          .catch(
-            () => ({})
+          const response =
+            await fetchWithTimeout(
+              `${API_BASE_URL}/auth/refresh/`,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify({
+                    refresh:
+                      storedRefresh,
+                  }),
+              }
+            );
+
+
+          const data =
+            await response
+              .json()
+              .catch(
+                () => ({})
+              );
+
+
+          if (!response.ok) {
+
+            console.warn(
+              "Refresh token failed:",
+              data
+            );
+
+            clearAuth();
+
+            return null;
+
+          }
+
+
+          saveTokens(
+            data.access,
+            data.refresh ||
+              storedRefresh
           );
 
 
-      if (
-        !response.ok
-      ) {
+          return data.access;
 
-        console.warn(
-          "Refresh token failed:",
-          data
-        );
+        })();
 
-        clearAuth();
 
-        return null;
+      refreshPromiseRef.current =
+        refreshRequest;
+
+
+      try {
+
+        return await refreshRequest;
+
+      } finally {
+
+        // Only clear the lock after the shared request finishes.
+        refreshPromiseRef.current =
+          null;
 
       }
-
-
-      saveTokens(
-        data.access,
-        data.refresh ||
-          storedRefresh
-      );
-
-
-      return data.access;
 
     };
 
@@ -506,7 +580,8 @@ export function AuthProvider({
         } catch (error) {
 
           console.warn(
-            "Access token failed. Trying refresh..."
+            "Access token failed. Trying refresh...",
+            error
           );
 
 

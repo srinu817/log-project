@@ -46,6 +46,8 @@ from .services.security_service import (
     SecurityViolation,
 )
 
+from .audit_service import AuditService
+
 
 # ==========================================================
 # ROLE HELPERS
@@ -219,9 +221,22 @@ class RepositoryListView(APIView):
 
     def get(self, request):
 
+        # ------------------------------------------------------
+        # IMPORTANT:
+        #
+        # Do NOT filter active=True here.
+        #
+        # Deactivated repositories must remain visible in the
+        # repository list because deactivation is a soft state
+        # change, not database deletion.
+        #
+        # Delivery/testing/branch APIs below still require
+        # active=True, so inactive repositories cannot be used
+        # for those operations.
+        # ------------------------------------------------------
+
         repositories = (
             RepositoryConfig.objects
-            .filter(active=True)
             .prefetch_related("credential")
             .order_by("name")
         )
@@ -450,6 +465,15 @@ class RepositoryDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # ------------------------------------------------------
+        # IMPORTANT:
+        #
+        # This is a SOFT DEACTIVATION.
+        #
+        # The repository is NOT deleted from the database.
+        # Only the active flag is changed.
+        # ------------------------------------------------------
+
         repository.active = False
 
         repository.save(
@@ -464,6 +488,98 @@ class RepositoryDetailView(APIView):
                 "message": (
                     "Repository deactivated successfully."
                 )
+            }
+        )
+
+
+# ==========================================================
+# ACTIVATE REPOSITORY
+# ==========================================================
+
+class RepositoryActivateView(APIView):
+    """
+    Reactivate an existing repository.
+
+    ADMIN and MANAGER can activate repositories.
+    The repository record is preserved; only the active
+    state is changed back to True.
+    """
+
+    permission_classes = [
+        IsManagerOrAdmin
+    ]
+
+    def patch(self, request, pk):
+
+        repository = get_object_or_404(
+            RepositoryConfig.objects
+            .prefetch_related("credential"),
+            pk=pk,
+        )
+
+        # ------------------------------------------------------
+        # ONLY ADMIN + MANAGER
+        # ------------------------------------------------------
+
+        if not can_manage_all_repositories(
+            request.user
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "Only Administrators and Managers "
+                        "can activate repositories."
+                    )
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # ------------------------------------------------------
+        # ALREADY ACTIVE
+        # ------------------------------------------------------
+
+        if repository.active:
+
+            return Response(
+                {
+                    "message": (
+                        "Repository is already active."
+                    ),
+
+                    "repository": (
+                        RepositorySerializer(
+                            repository
+                        ).data
+                    ),
+                }
+            )
+
+        # ------------------------------------------------------
+        # ACTIVATE EXISTING RECORD
+        # ------------------------------------------------------
+
+        repository.active = True
+
+        repository.save(
+            update_fields=[
+                "active",
+                "updated_at",
+            ]
+        )
+
+        return Response(
+            {
+                "message": (
+                    "Repository activated successfully."
+                ),
+
+                "repository": (
+                    RepositorySerializer(
+                        repository
+                    ).data
+                ),
             }
         )
 
@@ -1720,6 +1836,25 @@ class JobListView(APIView):
             recipients=recipients,
         )
 
+        # ------------------------------------------------------
+        # AUDIT: DELIVERY STARTED
+        # ------------------------------------------------------
+
+        AuditService.try_log(
+            request=request,
+            user=request.user,
+            action="DELIVERY_STARTED",
+            resource="delivery_job",
+            resource_id=job.id,
+            metadata={
+                "job_reference": job.job_reference,
+                "repository_id": repository.id,
+                "repository_name": repository.name,
+                "dry_run": dry,
+                "targets_count": len(cleaned_targets),
+            },
+        )
+
         try:
 
             original_targets = (
@@ -1794,6 +1929,25 @@ class JobListView(APIView):
                 )
 
                 job.save()
+
+                # --------------------------------------------------
+                # AUDIT: DRY RUN COMPLETED
+                # --------------------------------------------------
+
+                AuditService.try_log(
+                    request=request,
+                    user=request.user,
+                    action="DELIVERY_DRY_RUN_COMPLETED",
+                    resource="delivery_job",
+                    resource_id=job.id,
+                    metadata={
+                        "job_reference": job.job_reference,
+                        "repository_id": repository.id,
+                        "repository_name": repository.name,
+                        "files_count": len(files),
+                        "targets_count": len(cleaned_targets),
+                    },
+                )
 
                 response_data = (
                     JobSerializer(
@@ -1898,6 +2052,28 @@ class JobListView(APIView):
 
             job.save()
 
+            # --------------------------------------------------
+            # AUDIT: DELIVERY SUCCESS
+            # --------------------------------------------------
+
+            AuditService.try_log(
+                request=request,
+                user=request.user,
+                action="DELIVERY_SUCCESS",
+                resource="delivery_job",
+                resource_id=job.id,
+                metadata={
+                    "job_reference": job.job_reference,
+                    "repository_id": repository.id,
+                    "repository_name": repository.name,
+                    "files_count": len(files),
+                    "archive_name": job.archive_name,
+                    "email_mode": email_mode,
+                    "recipients_count": len(recipients),
+                    "targets_count": len(cleaned_targets),
+                },
+            )
+
             response_data = (
                 JobSerializer(
                     job
@@ -1956,6 +2132,25 @@ class JobListView(APIView):
 
             job.save()
 
+            # --------------------------------------------------
+            # AUDIT: DELIVERY EMAIL FAILURE
+            # --------------------------------------------------
+
+            AuditService.try_log(
+                request=request,
+                user=request.user,
+                action="DELIVERY_FAILED",
+                resource="delivery_job",
+                resource_id=job.id,
+                metadata={
+                    "job_reference": job.job_reference,
+                    "repository_id": repository.id,
+                    "repository_name": repository.name,
+                    "error_type": "EMAIL_DELIVERY_ERROR",
+                    "targets_count": len(cleaned_targets),
+                },
+            )
+
             return Response(
                 {
                     **JobSerializer(
@@ -1987,6 +2182,25 @@ class JobListView(APIView):
             )
 
             job.save()
+
+            # --------------------------------------------------
+            # AUDIT: DELIVERY FAILURE
+            # --------------------------------------------------
+
+            AuditService.try_log(
+                request=request,
+                user=request.user,
+                action="DELIVERY_FAILED",
+                resource="delivery_job",
+                resource_id=job.id,
+                metadata={
+                    "job_reference": job.job_reference,
+                    "repository_id": repository.id,
+                    "repository_name": repository.name,
+                    "error_type": "DELIVERY_ERROR",
+                    "targets_count": len(cleaned_targets),
+                },
+            )
 
             return Response(
                 {
@@ -2110,6 +2324,41 @@ class JobDetailView(APIView):
 
         return Response(
             response_data
+        )
+
+    def delete(self, request, pk):
+
+        job = get_object_or_404(
+            DeliveryJob.objects.select_related(
+                "repository",
+                "created_by",
+            ),
+            pk=pk,
+        )
+
+        if not (
+            is_admin(request.user)
+            or is_manager(request.user)
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "Only Administrators and Managers "
+                        "can delete delivery jobs."
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        job.delete()
+
+        return Response(
+            {
+                "message": (
+                    "Delivery job deleted successfully."
+                )
+            }
         )
 
 

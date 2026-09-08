@@ -2,7 +2,10 @@ from rest_framework import serializers
 
 from django.contrib.auth import authenticate
 
-from .models import User
+from .models import (
+    User,
+    UserSettings,
+)
 
 
 # ============================================================
@@ -124,6 +127,146 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active",
             "created_at",
         ]
+
+
+# ============================================================
+# USER SETTINGS
+# ============================================================
+
+class UserSettingsSerializer(
+    serializers.ModelSerializer
+):
+    """
+    Serializer used to read and update the authenticated
+    user's application settings.
+
+    Settings are intentionally kept separate from UserSerializer
+    because these values represent application preferences rather
+    than authentication or profile information.
+    """
+
+    default_repository = serializers.PrimaryKeyRelatedField(
+        queryset=__import__(
+            "delivery.models",
+            fromlist=["RepositoryConfig"],
+        ).RepositoryConfig.objects.all(),
+        allow_null=True,
+        required=False,
+    )
+
+    class Meta:
+
+        model = UserSettings
+
+        fields = [
+            "theme",
+            "font",
+            "language",
+            "default_repository",
+            "default_delivery_mode",
+            "items_per_page",
+            "confirm_before_delivery",
+            "auto_refresh_dashboard",
+            "auto_refresh_interval",
+            "successful_deliveries",
+            "failed_deliveries",
+            "dry_run_completions",
+            "repository_connection_failures",
+            "notification_recipients",
+        ]
+
+    def validate_items_per_page(
+        self,
+        value,
+    ):
+
+        allowed_values = {
+            10,
+            20,
+            50,
+        }
+
+        if value not in allowed_values:
+
+            raise serializers.ValidationError(
+                "Items per page must be 10, 20 or 50."
+            )
+
+        return value
+
+    def validate_auto_refresh_interval(
+        self,
+        value,
+    ):
+
+        allowed_values = {
+            5,
+            10,
+            30,
+        }
+
+        if value not in allowed_values:
+
+            raise serializers.ValidationError(
+                "Auto-refresh interval must be 5, 10 or 30 minutes."
+            )
+
+        return value
+
+    def validate_notification_recipients(
+        self,
+        value,
+    ):
+
+        if not isinstance(
+            value,
+            list,
+        ):
+
+            raise serializers.ValidationError(
+                "Notification recipients must be a list of email addresses."
+            )
+
+        cleaned_recipients = []
+
+        for email in value:
+
+            if not isinstance(
+                email,
+                str,
+            ):
+
+                raise serializers.ValidationError(
+                    "Each notification recipient must be an email address."
+                )
+
+            email = email.strip().lower()
+
+            if not email:
+
+                continue
+
+            email_field = serializers.EmailField()
+
+            try:
+
+                cleaned_email = email_field.run_validation(
+                    email
+                )
+
+            except serializers.ValidationError:
+
+                raise serializers.ValidationError(
+                    f"Invalid notification email address: {email}"
+                )
+
+            if cleaned_email not in cleaned_recipients:
+
+                cleaned_recipients.append(
+                    cleaned_email
+                )
+
+        return cleaned_recipients
 
 
 # ============================================================

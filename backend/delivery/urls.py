@@ -4,6 +4,7 @@ from .views import (
     DashboardView,
     RepositoryListView,
     RepositoryDetailView,
+    RepositoryActivateView,
     RepositoryBranchesView,
     RepositoryBranchesPreviewView,
     RepositoryTestConnectionView,
@@ -65,6 +66,18 @@ urlpatterns = [
         "repositories/<int:pk>/",
         RepositoryDetailView.as_view(),
         name="repository-detail",
+    ),
+
+    # ----------------------------------------------------------
+    # ACTIVATE REPOSITORY
+    #
+    # Reactivates an existing deactivated repository.
+    # ----------------------------------------------------------
+
+    path(
+        "repositories/<int:pk>/activate/",
+        RepositoryActivateView.as_view(),
+        name="repository-activate",
     ),
 
     path(
