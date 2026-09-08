@@ -1220,13 +1220,8 @@ function App() {
         })
       );
 
-      setNotice(
-        `${t(
-          "Language"
-        )}: ${language} ${t(
-          "selected"
-        )}.`
-      );
+      // Language changes apply immediately.
+      // Do not show the generic top-of-page notice for language selection.
     };
 
   const handleFontChange =
@@ -7334,7 +7329,18 @@ function App() {
 
                   <div className="securityRow">
                     <span>{t("Last login")}</span>
-                    <strong>{t("May 1, 2024 • 10:42 AM")}</strong>
+                    <strong>
+                      {new Date().toLocaleString(
+                        navigator.language || "en-IN",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        }
+                      )}
+                    </strong>
                   </div>
 
                   <button

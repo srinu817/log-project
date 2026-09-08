@@ -7589,3 +7589,1492 @@ nav button,
 :root[data-theme="dark"] .repositoryWizardPanel::-webkit-scrollbar-thumb:hover {
   background: #64748b !important;
 }
+
+/* ============================================================
+   RESPONSIVE APPLICATION SYSTEM
+   ------------------------------------------------------------
+   CSS-only responsive layer.
+   Existing functionality and desktop styling are preserved.
+   This layer makes the shared layouts adapt across desktop,
+   tablet and mobile viewports without changing React behavior.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   RESPONSIVE BASE SAFETY
+   ------------------------------------------------------------ */
+
+.app,
+.app > main,
+.app > main > *,
+.panel,
+.panelHead,
+.cards,
+.grid,
+.repositoryPage,
+.repositoryStats,
+.repositoryToolbar,
+.repositoryList,
+.repositoryGrid,
+.repositoryListView,
+.formGrid,
+.settings,
+.audit-log-summary,
+.historyTable,
+.modal,
+.deliveryModal,
+.repositoryWizardModal,
+.repositoryWizardPanel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.panelHead > *,
+header > *,
+.actions,
+.repoActions,
+.modalFooter,
+.repositoryWizardFooter,
+.repositoryWizardFooterLeft,
+.repositoryWizardFooterRight {
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------
+   LARGE DESKTOP
+   ------------------------------------------------------------ */
+
+@media (min-width: 1280px) {
+  .app > main {
+    padding: 34px 42px;
+  }
+
+  .cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .repositoryStats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .audit-log-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ------------------------------------------------------------
+   TABLET
+   651px — 1100px
+   ------------------------------------------------------------ */
+
+@media (min-width: 651px) and (max-width: 1100px) {
+  .app > aside {
+    width: 210px;
+    min-width: 210px;
+    max-width: 210px;
+    flex-basis: 210px;
+  }
+
+  .app > main {
+    width: calc(100% - 210px) !important;
+    min-width: 0;
+    padding: 24px 22px;
+  }
+
+  header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  header > div:last-child,
+  header .actions {
+    flex: 0 1 auto;
+  }
+
+  .panel {
+    padding: 17px;
+  }
+
+  .panelHead {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .panelHead > div:first-child {
+    flex: 1 1 320px;
+  }
+
+  .cards,
+  .repositoryStats,
+  .audit-log-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid {
+    grid-template-columns:
+      minmax(0, 1.35fr)
+      minmax(260px, 1fr);
+  }
+
+  .settings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .repositoryToolbar {
+    grid-template-columns:
+      minmax(0, 1fr)
+      150px
+      auto;
+  }
+
+  .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .actions,
+  .repoActions {
+    flex-wrap: wrap;
+  }
+
+  .modalOverlay {
+    padding: 16px;
+  }
+
+  .modal {
+    width: min(780px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+  }
+
+  .deliveryModal {
+    width: min(820px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+  }
+
+  .repositoryWizardModal {
+    width: min(620px, 100vw);
+  }
+}
+
+/* ------------------------------------------------------------
+   MOBILE
+   481px — 650px
+   ------------------------------------------------------------ */
+
+@media (min-width: 481px) and (max-width: 650px) {
+  /*
+   * The current JSX does not contain a mobile sidebar toggle.
+   * Keep a compact icon rail instead of removing navigation.
+   */
+  .app {
+    min-width: 0;
+  }
+
+  .app > aside {
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+    flex-basis: 68px !important;
+    padding: 14px 8px;
+  }
+
+  .app > main {
+    width: calc(100% - 68px) !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    padding: 18px 14px;
+  }
+
+  .logo {
+    justify-content: center;
+    padding: 2px 0 18px;
+  }
+
+  .logo b,
+  .logo span,
+  .sideBottom {
+    display: none;
+  }
+
+  nav {
+    gap: 6px;
+  }
+
+  nav button {
+    justify-content: center;
+    gap: 0;
+    padding: 10px 6px;
+    min-height: 42px;
+  }
+
+  nav button span,
+  aside > div:not(.logo):not(.sideBottom) > button span {
+    display: none;
+  }
+
+  aside > div:not(.logo):not(.sideBottom) > button {
+    justify-content: center !important;
+    gap: 0 !important;
+    padding: 10px 6px !important;
+  }
+
+  header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  header > div:last-child,
+  header .actions {
+    width: 100%;
+  }
+
+  header .actions {
+    justify-content: flex-start;
+  }
+
+  .panel {
+    padding: 15px;
+  }
+
+  .panelHead {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .panelHead > div,
+  .panelHead > button,
+  .panelHead > .actions {
+    width: 100%;
+  }
+
+  .cards,
+  .repositoryStats,
+  .audit-log-summary,
+  .settings {
+    grid-template-columns: 1fr;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryViewToggle {
+    justify-self: start;
+  }
+
+  .actions,
+  .repoActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .actions > button,
+  .repoActions > button,
+  .modalFooter button {
+    flex: 1 1 auto;
+  }
+
+  .repositoryStatCard {
+    min-height: 78px;
+  }
+
+  .historyTable {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modalOverlay {
+    align-items: flex-start;
+    padding: 10px;
+    overflow-y: auto;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 20px);
+    margin: 0;
+  }
+
+  .deliveryModal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 20px);
+    margin: 0;
+  }
+
+  .resultGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryWizardModal {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  .repositoryWizardHeader {
+    padding: 18px 16px 15px;
+  }
+
+  .repositoryWizardSteps {
+    padding: 15px 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .repositoryWizardStep {
+    min-width: 76px;
+  }
+
+  .repositoryWizardPanel {
+    padding: 18px 16px;
+  }
+
+  .repositoryWizardPanel .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryWizardForm > .modalFooter,
+  .repositoryWizardPanel > .modalFooter {
+    padding: 13px 16px;
+  }
+
+  .repositoryWizardFooter,
+  .repositoryWizardFooterLeft,
+  .repositoryWizardFooterRight {
+    flex-wrap: wrap;
+  }
+
+  .repositoryWizardFooterRight button {
+    flex: 1 1 auto;
+  }
+
+  .targetRow {
+    grid-template-columns:
+      28px
+      minmax(0, 1fr) !important;
+  }
+
+  .recipientInputRow {
+    flex-wrap: wrap;
+  }
+
+  .recipientAddButton {
+    flex: 0 0 auto;
+  }
+
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+}
+
+/* ------------------------------------------------------------
+   SMALL MOBILE
+   ≤480px
+   ------------------------------------------------------------ */
+
+@media (max-width: 480px) {
+  .app {
+    min-width: 0;
+  }
+
+  /*
+   * No mobile menu exists in the current JSX, so navigation is
+   * kept as a compact icon rail rather than being removed.
+   */
+  .app > aside {
+    width: 58px !important;
+    min-width: 58px !important;
+    max-width: 58px !important;
+    flex-basis: 58px !important;
+    padding: 12px 6px;
+  }
+
+  .app > main {
+    width: calc(100% - 58px) !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    padding: 14px 10px;
+  }
+
+  .logo {
+    justify-content: center;
+    padding: 2px 0 16px;
+  }
+
+  .logoMark {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    font-size: 10px;
+  }
+
+  .logo b,
+  .logo span,
+  .sideBottom {
+    display: none;
+  }
+
+  nav {
+    gap: 5px;
+  }
+
+  nav button {
+    justify-content: center;
+    gap: 0;
+    min-height: 40px;
+    padding: 9px 4px;
+    border-radius: 8px;
+  }
+
+  nav button span,
+  aside > div:not(.logo):not(.sideBottom) > button span {
+    display: none;
+  }
+
+  aside > div:not(.logo):not(.sideBottom) > button {
+    justify-content: center !important;
+    gap: 0 !important;
+    padding: 9px 4px !important;
+    min-height: 40px !important;
+  }
+
+  header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  header > div,
+  header > div:last-child,
+  header .actions {
+    width: 100%;
+  }
+
+  header .actions {
+    justify-content: stretch;
+  }
+
+  header .actions > button {
+    flex: 1 1 auto;
+  }
+
+  .panel {
+    padding: 12px;
+    border-radius: 11px;
+  }
+
+  .panelHead {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 13px;
+  }
+
+  .panelHead > div,
+  .panelHead > button,
+  .panelHead > .actions {
+    width: 100%;
+  }
+
+  .panelHead h2 {
+    font-size: 14px;
+  }
+
+  .cards,
+  .repositoryStats,
+  .audit-log-summary,
+  .settings,
+  .grid,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cards,
+  .repositoryStats {
+    gap: 9px;
+  }
+
+  .stat {
+    padding: 13px;
+  }
+
+  .repositoryStatCard {
+    min-height: 72px;
+    padding: 12px;
+  }
+
+  .repositoryToolbar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .repositorySearch {
+    width: 100%;
+  }
+
+  .repositoryViewToggle {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .repositoryViewToggle button {
+    flex: 1 1 auto;
+  }
+
+  .actions,
+  .repoActions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .actions > button,
+  .repoActions > button {
+    flex: 1 1 140px;
+  }
+
+  .modalOverlay {
+    align-items: flex-start;
+    justify-content: stretch;
+    padding: 6px;
+    overflow-y: auto;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 12px);
+    border-radius: 11px;
+  }
+
+  .modalHeader {
+    padding: 14px 15px;
+  }
+
+  .modalFooter {
+    padding: 12px 15px;
+    flex-wrap: wrap;
+  }
+
+  .modalFooter button {
+    flex: 1 1 130px;
+    justify-content: center;
+  }
+
+  .deliveryModal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 12px);
+    border-radius: 11px;
+  }
+
+  .resultGrid {
+    grid-template-columns: 1fr;
+    padding: 12px 15px;
+  }
+
+  .repositoryModalOverlay {
+    justify-content: stretch;
+    overflow: hidden;
+  }
+
+  .repositoryWizardModal {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+  }
+
+  .repositoryWizardHeader {
+    gap: 10px;
+    padding: 16px 14px 13px;
+  }
+
+  .repositoryWizardHeader h2 {
+    font-size: 17px;
+  }
+
+  .repositoryWizardHeader span {
+    font-size: 10px;
+  }
+
+  .repositoryWizardSteps {
+    gap: 0;
+    padding: 13px 7px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .repositoryWizardStep {
+    min-width: 72px;
+    font-size: 8px;
+  }
+
+  .repositoryWizardPanel {
+    padding: 16px 14px;
+  }
+
+  .repositoryWizardPanelHeader {
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+
+  .repositoryWizardPanelHeader p {
+    line-height: 1.5;
+  }
+
+  .repositoryWizardPanel .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryWizardForm > .modalFooter,
+  .repositoryWizardPanel > .modalFooter {
+    padding: 11px 14px;
+  }
+
+  .repositoryWizardFooter,
+  .repositoryWizardFooterLeft,
+  .repositoryWizardFooterRight {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .repositoryWizardFooterLeft button,
+  .repositoryWizardFooterRight button {
+    flex: 1 1 130px;
+    justify-content: center;
+  }
+
+  .targetRow {
+    grid-template-columns:
+      25px
+      minmax(0, 1fr) !important;
+    gap: 7px;
+  }
+
+  .targetRowNumber {
+    grid-column: 1;
+  }
+
+  .targetRow .formField {
+    grid-column: 2;
+  }
+
+  .targetRow .formField:nth-child(3) {
+    grid-column: 2;
+  }
+
+  .targetRow .targetRemoveButton {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .targetRepoDetails {
+    grid-template-columns: 1fr !important;
+  }
+
+  .targetRepoFooter {
+    grid-template-columns: 1fr !important;
+  }
+
+  .targetRepoHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .targetRepoHeader .connectionBadge {
+    align-self: flex-start;
+  }
+
+  .targetRepoActivity {
+    flex-wrap: wrap;
+    gap: 10px 18px;
+  }
+
+  .historyPagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .historyPagination > div {
+    width: 100%;
+  }
+
+  .paginationButton {
+    flex: 1 1 auto;
+  }
+
+  .historyTable {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settingsInfoRow {
+    flex-wrap: wrap;
+    gap: 5px 10px;
+  }
+
+  .login-page {
+    min-height: 100dvh;
+    grid-template-columns: 1fr;
+    background: #faf9fc;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 24px 16px;
+    border-radius: 12px;
+  }
+
+  .login-form > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ------------------------------------------------------------
+   TOUCH / VERY NARROW VIEWPORT SAFETY
+   ------------------------------------------------------------ */
+
+@media (max-width: 360px) {
+  .app > aside {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    flex-basis: 52px !important;
+  }
+
+  .app > main {
+    width: calc(100% - 52px) !important;
+    padding: 12px 8px;
+  }
+
+  nav button {
+    min-height: 38px;
+    padding-inline: 3px;
+  }
+
+  .panel {
+    padding: 10px;
+  }
+
+  .repositoryWizardHeader,
+  .repositoryWizardPanel {
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+
+  .modalFooter button,
+  .repositoryWizardFooterLeft button,
+  .repositoryWizardFooterRight button {
+    flex-basis: 100%;
+  }
+}
+
+/* ------------------------------------------------------------
+   REDUCED MOTION
+   ------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .repositoryWizardSteps,
+  .historyTable {
+    scroll-behavior: auto;
+  }
+}
+
+
+
+/* ============================================================
+   REPOSITORY WIZARD REDESIGN — VISUAL ONLY
+   ------------------------------------------------------------
+   This section intentionally changes presentation only.
+   Existing React structure, handlers, API behavior, i18n and
+   all unrelated screens remain untouched.
+   ============================================================ */
+
+.repositoryWizardModal {
+  width: min(760px, calc(100vw - 32px));
+  max-width: 760px;
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.repositoryWizardHeader {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--white);
+}
+
+.repositoryWizardHeader h2 {
+  margin: 0 0 5px;
+  font-size: 21px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.repositoryWizardHeader > div > span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.repositoryWizardSteps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  align-items: start;
+  padding: 18px 24px 20px;
+  background: var(--app-bg-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.repositoryWizardStep {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  position: relative;
+  text-align: center;
+}
+
+.repositoryWizardStep > span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.repositoryWizardStep.active > span,
+.repositoryWizardStep.completed > span {
+  color: var(--text);
+}
+
+.repositoryWizardCircle {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  position: relative;
+  z-index: 2;
+}
+
+.repositoryWizardStep.active .repositoryWizardCircle,
+.repositoryWizardStep.completed .repositoryWizardCircle {
+  border-color: var(--purple);
+  background: var(--purple);
+  color: #fff;
+}
+
+.repositoryWizardLine {
+  height: 2px;
+  margin: 14px -1px 0;
+  background: var(--border);
+  align-self: stretch;
+}
+
+.repositoryWizardLine.completed {
+  background: var(--purple);
+}
+
+.repositoryWizardForm {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--white);
+}
+
+.repositoryWizardPanel {
+  padding: 24px;
+  min-height: 430px;
+  overflow: auto;
+}
+
+.repositoryWizardPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.repositoryWizardPanelIcon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--purple-border);
+  border-radius: 11px;
+  background: var(--purple-soft);
+  color: var(--purple);
+}
+
+.repositoryWizardPanelHeader h3 {
+  margin: 2px 0 5px;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.repositoryWizardPanelHeader p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.repositoryWizardPanel .formGrid {
+  gap: 16px;
+}
+
+.repositoryWizardPanel .formField label {
+  margin-bottom: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.repositoryWizardPanel input,
+.repositoryWizardPanel select,
+.repositoryWizardPanel textarea {
+  min-height: 42px;
+  border-radius: 9px;
+}
+
+/* Targets */
+.repositoryTargetList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.repositoryTargetRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 38px;
+  align-items: end;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--app-bg-soft);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.repositoryTargetRow:hover {
+  border-color: var(--purple-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.repositoryTargetRow .formField {
+  min-width: 0;
+}
+
+.repositoryTargetRow .formField label {
+  display: block;
+}
+
+.repositoryDeleteButton {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.targetHint {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--purple-border);
+  border-radius: 10px;
+  background: var(--purple-soft);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* Delivery */
+.repositoryRecipientList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.repositoryRecipientRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 9px;
+  align-items: center;
+}
+
+.repositoryRecipientRow input {
+  width: 100%;
+}
+
+.repositoryRecipientRow .danger {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.repositoryRecipientList > .ghost.small {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.repositoryTestArea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 13px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--app-bg-soft);
+}
+
+.repositoryTestArea > span {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.smtpNotice {
+  margin-top: 16px;
+  border-radius: 10px;
+  line-height: 1.5;
+}
+
+/* Review */
+.repositoryReview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.repositoryReviewRow {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--app-bg-soft);
+}
+
+.repositoryReviewRow > span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.repositoryReviewRow > strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.repositoryReviewTargets {
+  margin-top: 16px;
+  padding: 15px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+.repositoryReviewTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.repositoryReviewTarget {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+.repositoryReviewTarget:first-of-type {
+  border-top: 0;
+}
+
+.repositoryReviewTarget > span {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--purple-soft);
+  color: var(--purple);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.repositoryReviewTarget > strong,
+.repositoryReviewTarget > small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.repositoryReviewTarget > strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.repositoryReviewTarget > small {
+  grid-column: 2;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.repositoryWizardFooter {
+  margin: 0;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--white);
+}
+
+.repositoryWizardFooterLeft,
+.repositoryWizardFooterRight {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.repositoryWizardFooterRight {
+  justify-content: flex-end;
+}
+
+.repositoryWizardFooter button {
+  min-height: 39px;
+}
+
+/* Dark theme */
+:root[data-theme="dark"] .repositoryWizardModal,
+html[data-theme="dark"] .repositoryWizardModal {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Tablet */
+@media (max-width: 760px) {
+  .repositoryWizardModal {
+    width: min(700px, calc(100vw - 24px));
+  }
+
+  .repositoryWizardPanel {
+    min-height: 400px;
+  }
+
+  .repositoryTargetRow {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .repositoryDeleteButton {
+    grid-column: 2;
+    justify-self: end;
+  }
+}
+
+/* Mobile */
+@media (max-width: 650px) {
+  .repositoryWizardModal {
+    width: calc(100vw - 14px);
+    max-width: none;
+    height: calc(100vh - 14px);
+    max-height: calc(100vh - 14px);
+    border-radius: 14px;
+  }
+
+  .repositoryWizardHeader {
+    padding: 17px 16px 14px;
+  }
+
+  .repositoryWizardHeader h2 {
+    font-size: 18px;
+  }
+
+  .repositoryWizardSteps {
+    grid-template-columns: repeat(5, minmax(54px, 1fr));
+    overflow-x: auto;
+    padding: 14px 12px 16px;
+    scrollbar-width: thin;
+  }
+
+  .repositoryWizardStep > span {
+    font-size: 10px;
+  }
+
+  .repositoryWizardCircle {
+    width: 27px;
+    height: 27px;
+  }
+
+  .repositoryWizardPanel {
+    min-height: 0;
+    padding: 18px 16px 20px;
+  }
+
+  .repositoryWizardPanelHeader {
+    margin-bottom: 17px;
+  }
+
+  .repositoryWizardPanelHeader h3 {
+    font-size: 16px;
+  }
+
+  .repositoryWizardPanel .formGrid,
+  .repositoryReview {
+    grid-template-columns: 1fr;
+  }
+
+  .repositoryTargetRow {
+    grid-template-columns: 1fr;
+    gap: 11px;
+    padding: 13px;
+  }
+
+  .repositoryDeleteButton {
+    grid-column: auto;
+    justify-self: end;
+  }
+
+  .repositoryWizardFooter {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .repositoryWizardFooterLeft,
+  .repositoryWizardFooterRight {
+    flex: 1 1 0;
+  }
+
+  .repositoryWizardFooterRight {
+    justify-content: flex-end;
+  }
+
+  .repositoryWizardFooter button {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .repositoryWizardFooter {
+    flex-wrap: wrap;
+  }
+
+  .repositoryWizardFooterLeft,
+  .repositoryWizardFooterRight {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .repositoryWizardFooterRight button,
+  .repositoryWizardFooterLeft button {
+    flex: 1 1 auto;
+  }
+}
+
+/* ============================================================
+   SETTINGS PAGE — OVERFLOW / WIDTH FIX ONLY
+   ------------------------------------------------------------
+   Existing CSS above is preserved exactly.
+   This block only prevents Settings content from overflowing
+   its available panel width. No functionality is changed.
+   ============================================================ */
+
+.settingsPage,
+.settingsPage.panel,
+.settingsGridTwo,
+.settingsCard,
+.settingsCardHeader,
+.settingsFieldList,
+.settingsSystemInfo,
+.settingsFooter {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.settingsGridTwo {
+  width: 100%;
+}
+
+.settingsCardHeader > div:last-child,
+.settingsFieldBlock,
+.settingsFieldBlock > *,
+.settingRow > div,
+.securityRow > span,
+.securityRow > strong,
+.settingsInfoRow > span,
+.settingsInfoRow > strong {
+  min-width: 0;
+}
+
+.settingsCardHeader > div:last-child,
+.settingRow > div,
+.securityRow > span,
+.settingsInfoRow > span {
+  overflow-wrap: anywhere;
+}
+
+.settingsCard select,
+.settingsCard input,
+.settingsCard textarea,
+.settingsPage .textInput {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.settingRow select,
+.settingsPage .textInput {
+  width: min(180px, 100%);
+}
+
+.securityRow,
+.settingsInfoRow {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.securityRow > strong,
+.settingsInfoRow > strong {
+  min-width: 0;
+  max-width: 100%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.settingsFooter,
+.settingsFooterActions {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.settingsFooterActions > button,
+.settingsFooter > button {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .settingsGridTwo {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .settingsPage {
+    width: 100%;
+    padding: 15px;
+    overflow-x: hidden;
+  }
+
+  .settingsCard {
+    width: 100%;
+  }
+
+  .securityRow,
+  .settingsInfoRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+    align-items: start;
+  }
+
+  .securityRow > strong,
+  .settingsInfoRow > strong {
+    text-align: right;
+  }
+
+  .settingRow {
+    min-width: 0;
+  }
+
+  .settingRow select,
+  .settingsPage .textInput {
+    width: 100%;
+    max-width: 180px;
+  }
+
+  .settingsFooter {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .settingRow,
+  .securityRow,
+  .settingsInfoRow {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .settingRow select,
+  .settingsPage .textInput {
+    width: 100%;
+    max-width: none;
+  }
+
+  .securityRow > strong,
+  .settingsInfoRow > strong {
+    text-align: left;
+  }
+}
+

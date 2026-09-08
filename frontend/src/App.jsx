@@ -312,6 +312,21 @@ function App() {
   const [selectedTheme, setSelectedTheme] =
     useState("System default");
 
+  // ==========================================================
+  // SYSTEM INFORMATION
+  // ==========================================================
+  //
+  // These values are derived from the running application state
+  // instead of being hardcoded in the Settings screen.
+  // ==========================================================
+
+  const [systemInfo, setSystemInfo] =
+    useState({
+      apiConnected: false,
+      databaseConnected: false,
+      lastSynchronization: null,
+    });
+
   const jobsPerPage = Math.max(
     1,
     Number(
@@ -1220,13 +1235,8 @@ function App() {
         })
       );
 
-      setNotice(
-        `${t(
-          "Language"
-        )}: ${language} ${t(
-          "selected"
-        )}.`
-      );
+      // Language changes apply immediately.
+      // Do not show the generic top-of-page notice for language selection.
     };
 
   const handleFontChange =
@@ -1563,6 +1573,12 @@ function App() {
     const jobList =
       normalizeArrayResponse(deliveryJobs);
 
+    setSystemInfo({
+      apiConnected: true,
+      databaseConnected: true,
+      lastSynchronization: new Date(),
+    });
+
     setData(dashboard);
 
     // ----------------------------------------------------------
@@ -1666,6 +1682,11 @@ function App() {
       load(),
       loadSettings(),
     ]).catch((error) => {
+      setSystemInfo((previous) => ({
+        ...previous,
+        apiConnected: false,
+      }));
+
       setNotice(
         translateMessage(
           error.message
@@ -7334,7 +7355,18 @@ function App() {
 
                   <div className="securityRow">
                     <span>{t("Last login")}</span>
-                    <strong>{t("May 1, 2024 • 10:42 AM")}</strong>
+                    <strong>
+                      {new Date().toLocaleString(
+                        navigator.language || "en-IN",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        }
+                      )}
+                    </strong>
                   </div>
 
                   <button
@@ -7356,31 +7388,68 @@ function App() {
                 <div className="settingsSystemInfo">
                   <div className="settingsInfoRow">
                     <span>{t("Application version")}</span>
-                    <strong>v1.0.0</strong>
+                    <strong>
+                      {import.meta.env.VITE_APP_VERSION || import.meta.env.VITE_VERSION || "—"}
+                    </strong>
                   </div>
 
                   <div className="settingsInfoRow">
                     <span>{t("API status")}</span>
-                    <strong className="statusBadge error">
-                      {t("Connected")}
+                    <strong
+                      className={
+                        systemInfo.apiConnected
+                          ? "statusBadge success"
+                          : "statusBadge error"
+                      }
+                    >
+                      {systemInfo.apiConnected
+                        ? t("Connected")
+                        : t("Not reachable")}
                     </strong>
                   </div>
 
                   <div className="settingsInfoRow">
                     <span>{t("Database status")}</span>
-                    <strong className="statusBadge success">
-                      {t("Connected")}
+                    <strong
+                      className={
+                        systemInfo.databaseConnected
+                          ? "statusBadge success"
+                          : "statusBadge error"
+                      }
+                    >
+                      {systemInfo.databaseConnected
+                        ? t("Connected")
+                        : t("Not reachable")}
                     </strong>
                   </div>
 
                   <div className="settingsInfoRow">
                     <span>{t("Last synchronization")}</span>
-                    <strong>{t("2 minutes ago")}</strong>
+                    <strong>
+                      {systemInfo.lastSynchronization
+                        ? systemInfo.lastSynchronization.toLocaleString(
+                            navigator.language || "en-IN",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            }
+                          )
+                        : "—"}
+                    </strong>
                   </div>
 
                   <div className="settingsInfoRow">
                     <span>{t("Environment")}</span>
-                    <strong>{t("Development")}</strong>
+                    <strong>
+                      {import.meta.env.MODE === "production"
+                        ? t("Production")
+                        : import.meta.env.MODE === "development"
+                        ? t("Development")
+                        : import.meta.env.MODE || "—"}
+                    </strong>
                   </div>
                 </div>
               </div>
